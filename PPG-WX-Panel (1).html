@@ -1,0 +1,1340 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#080b0f">
+<meta name="format-detection" content="telephone=no">
+<title>PPG WX PANEL — LIVE</title>
+<style>
+:root{
+  --bg:#080b0f; --panel:#101821; --panel2:#16202b; --raise:#1d2935;
+  --line:#2b3947; --line-soft:#222e3a;
+  --txt:#e6eef5; --dim:#aebecb; --faint:#8698a6;
+  --info:#5cb3e8; --go:#35c97a; --watch:#efcb3f; --caution:#f7963a; --nogo:#f2564a; --none:#7c8b98;
+  --mono:ui-monospace,"SF Mono","JetBrains Mono","Roboto Mono",Menlo,Consolas,monospace;
+  --ui:"Inter","Helvetica Neue",system-ui,-apple-system,sans-serif;
+}
+html[data-theme="light"]{
+  --bg:#dde4ea; --panel:#f7fafc; --panel2:#eaf0f5; --raise:#dfe8ef;
+  --line:#9daebc; --line-soft:#c2d0db;
+  --txt:#0c141c; --dim:#3c4d5c; --faint:#5b6d7c;
+  --info:#12628f; --go:#0a6b3d; --watch:#7d6404; --caution:#9c4f08; --nogo:#a5231a; --none:#54646f;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{background:var(--bg);color:var(--txt);font-family:var(--ui);font-size:17px;line-height:1.45;-webkit-font-smoothing:antialiased;touch-action:manipulation;-webkit-tap-highlight-color:transparent;overscroll-behavior-y:contain}
+.wrap{max-width:1600px;margin:0 auto;
+  padding:calc(8px + env(safe-area-inset-top)) calc(10px + env(safe-area-inset-right)) calc(26px + env(safe-area-inset-bottom)) calc(10px + env(safe-area-inset-left))}
+html:fullscreen,body:fullscreen{background:var(--bg);overflow-y:auto}
+html:-webkit-full-screen,body:-webkit-full-screen{background:var(--bg);overflow-y:auto}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:3px;margin-bottom:9px}
+.panel-hd{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 10px;border-bottom:1px solid var(--line);background:var(--panel2);flex-wrap:wrap}
+.panel-hd h2{margin:0;font-size:14px;font-weight:800;letter-spacing:.1em;text-transform:uppercase}
+.src{font:600 10.5px/1.3 var(--mono);color:var(--faint);text-transform:uppercase}
+.lbl{font-size:12.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);font-weight:700}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+.topbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;border:1px solid var(--line);border-bottom:none;background:var(--panel2);padding:8px 10px;border-radius:3px 3px 0 0}
+.ident b{font:800 19px/1.1 var(--mono);letter-spacing:.06em;display:block}
+.ident span{font-size:13px;color:var(--dim)}
+.topbar .meta{display:flex;gap:12px;margin-left:auto;align-items:center;flex-wrap:wrap}
+.meta .v{font:700 18px/1.2 var(--mono)}
+button.tgl{font:700 12px/1 var(--ui);letter-spacing:.06em;text-transform:uppercase;cursor:pointer;color:var(--txt);background:var(--raise);border:1px solid var(--line);padding:12px 12px;min-height:44px;border-radius:3px}
+button.tgl:hover{border-color:var(--info)}
+button.tgl.hl{border-color:var(--info);color:var(--info)}
+button:focus-visible,.chip:focus-visible,input:focus-visible{outline:2px solid var(--info);outline-offset:2px}
+
+/* location bar */
+.locbar{border:1px solid var(--line);border-bottom:none;background:var(--panel);padding:8px 10px;display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end}
+.locbar .f{display:flex;flex-direction:column;gap:3px}
+.locbar label{font:700 10.5px/1.3 var(--ui);letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
+.locbar input{background:var(--bg);color:var(--txt);border:1px solid var(--line);border-radius:3px;padding:10px 9px;font:700 16px/1.2 var(--mono);width:128px}
+.sites{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto;align-items:center}
+
+/* status strip */
+.statusstrip{display:flex;gap:1px;background:var(--line);border:1px solid var(--line);border-bottom:none;flex-wrap:wrap}
+.statusstrip>div{background:var(--panel2);padding:7px 10px;font:700 11.5px/1.3 var(--mono);color:var(--dim);flex:1 1 auto;display:flex;gap:7px;align-items:center}
+.led{width:9px;height:9px;border-radius:50%;background:var(--st);flex:0 0 9px}
+.warnbar{background:var(--nogo);color:#fff;padding:13px 14px;font-weight:800;font-size:18px;line-height:1.35;border-radius:3px;margin-bottom:9px;display:none}
+.warnbar.on{display:block}
+.stalebar{background:var(--caution);color:#1a1200;padding:13px 14px;font-weight:800;font-size:18px;line-height:1.35;border-radius:3px;margin-bottom:9px;display:none}
+.stalebar.on{display:block}
+.offlinebar{background:#5b6d7c;color:#fff;padding:13px 14px;font-weight:800;font-size:18px;line-height:1.35;border-radius:3px;margin-bottom:9px;display:none}
+.offlinebar.on{display:block}
+
+/* band */
+.band{border:1px solid var(--line);border-radius:0 0 3px 3px;margin-bottom:9px;overflow:hidden}
+.bandtop{display:grid;grid-template-columns:300px minmax(0,1fr);gap:16px;background:var(--panel);padding:11px 12px}
+.status{border-left:5px solid var(--st);padding-left:12px;display:flex;flex-direction:column;justify-content:center;gap:3px}
+.status .word{font:800 44px/1 var(--ui);letter-spacing:.01em;color:var(--st)}
+.status .why{font-size:16px;color:var(--dim);margin-top:4px;line-height:1.4}
+.brief{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:5px 24px;align-content:center}
+.brief div{display:flex;gap:9px;font-size:16px;line-height:1.4}
+.brief b{flex:0 0 92px;font:800 11px/1.6 var(--ui);letter-spacing:.09em;text-transform:uppercase;color:var(--dim)}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(238px,1fr));gap:1px;background:var(--line);border-top:1px solid var(--line)}
+.tiles>div{background:var(--panel);padding:10px 12px}
+.wtile{display:flex;gap:12px;align-items:center}
+.tile{display:flex;flex-direction:column;gap:4px;justify-content:center;min-width:0}
+.tile .big{font:700 32px/1.1 var(--mono)}
+.tile .sub{font:600 13px/1.35 var(--mono);color:var(--dim)}
+.delta{font-family:var(--mono);font-size:15px;font-weight:700}
+.up{color:var(--caution)}
+.bar{height:5px;background:var(--raise);border-radius:3px;overflow:hidden;margin-top:5px}
+.bar>i{display:block;height:100%}
+
+/* calculator */
+.calcwrap{padding:10px 12px}
+.inputs{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:12px}
+.inp label{display:block;font:700 11px/1.5 var(--ui);letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
+.inp input{width:100%;background:var(--bg);color:var(--txt);border:1px solid var(--line);border-radius:3px;padding:11px 10px;font:700 17px/1.2 var(--mono)}
+.disagree{background:#3a2a10;color:#ffd37a;padding:13px 14px;font-weight:800;font-size:17px;line-height:1.35;border-radius:3px;margin-bottom:9px;display:none;border:1px solid var(--caution)}
+.disagree.on{display:block}
+.obsstrip{display:flex;flex-wrap:wrap;gap:6px;padding:8px 10px;border:1px solid var(--line);border-bottom:none;background:var(--panel)}
+.obschip{flex:1 1 150px;background:var(--panel2);border:1px solid var(--line-soft);border-radius:3px;padding:8px 9px;min-width:0}
+.obschip.best{border-color:var(--info)}
+.obschip .n{font:800 13px/1.2 var(--mono)}
+.obschip .d{font:600 12px/1.35 var(--mono);color:var(--dim)}
+.inp em{display:block;font-style:normal;font-size:12.5px;color:var(--faint);margin-top:3px}
+.results{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:3px;overflow:hidden}
+.res{background:var(--panel2);padding:10px;border-top:4px solid var(--st)}
+.res .k{font:800 12px/1.4 var(--mono);color:var(--dim)}
+.res .t{font:800 30px/1.1 var(--mono);color:var(--st)}
+.res .d{font:600 12.5px/1.4 var(--mono);color:var(--dim)}
+.rig{font-size:14px;color:var(--faint);margin:10px 0 0}
+
+/* matrix */
+.mrow{padding:10px 12px;border-bottom:1px solid var(--line-soft)}
+.mrow:last-child{border-bottom:none}
+.mhd{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.mhd b{font-size:17px;font-weight:800}
+.mhd .flag{font:800 12px/1.3 var(--ui);letter-spacing:.06em;text-transform:uppercase;color:var(--st);white-space:nowrap}
+.plain{font-size:14px;color:var(--dim);margin:2px 0 8px}
+.mvals{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:3px;overflow:hidden}
+.mv{background:var(--panel2);padding:8px 9px;min-width:0}
+.mv .k{font:800 11px/1.4 var(--mono);color:var(--faint)}
+.mv .v{font:700 18px/1.3 var(--mono);word-break:break-word}
+.mv.now{background:var(--raise)}
+.mv.now .k{color:var(--info)}
+.dirv{display:flex;align-items:center;gap:7px}
+
+.hz,.rule{padding:10px 12px;border-bottom:1px solid var(--line-soft)}
+.hz:last-child,.rule:last-child{border-bottom:none}
+.hz{display:flex;gap:10px;align-items:flex-start}
+.hz .dot{width:11px;height:11px;border-radius:50%;margin-top:5px;flex:0 0 11px;background:var(--st)}
+.hz .ttl{display:flex;gap:10px;align-items:baseline;justify-content:space-between;flex-wrap:wrap}
+.hz .ttl b{font-size:17px;font-weight:800}
+.hz .state{font:800 12px/1.3 var(--mono);letter-spacing:.07em;color:var(--st)}
+.hz p{margin:4px 0 0;font-size:15px;color:var(--dim);line-height:1.4}
+.rule{display:flex;align-items:center;gap:10px}
+.rule .txt{flex:1;min-width:0}
+.rule .txt b{font-size:16px;font-weight:700}
+.rule .txt span{display:block;font:600 12px/1.4 var(--mono);color:var(--faint)}
+.rule .pill{font:800 12px/1 var(--mono);color:var(--st);border:1.5px solid var(--st);padding:7px 8px;border-radius:3px;white-space:nowrap}
+
+.strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1px;background:var(--line)}
+.step{background:var(--panel);padding:11px 12px;display:flex;flex-direction:column;gap:6px;border-top:5px solid var(--st)}
+.step .t{font:800 13px/1.2 var(--mono);color:var(--dim)}
+.step .w{font:700 20px/1.15 var(--mono)}
+.step .s{font:600 12.5px/1.35 var(--mono);color:var(--dim)}
+.step .st{font:800 12.5px/1.2 var(--ui);color:var(--st);text-transform:uppercase}
+
+.srcgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:1px;background:var(--line)}
+.srcitem{background:var(--panel);padding:10px;display:flex;gap:10px;align-items:baseline;justify-content:space-between}
+.srcitem b{font-size:15px;font-weight:700}
+.srcitem span{font:600 11.5px/1.4 var(--mono);color:var(--faint);display:block}
+.tag{font:800 11px/1 var(--mono);color:var(--st);border:1.5px solid var(--st);padding:6px 7px;border-radius:3px;white-space:nowrap}
+.grid{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:9px;align-items:start}
+.foot{margin-top:6px;font:600 12px/1.6 var(--mono);color:var(--faint)}
+
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);display:none;z-index:50;padding:14px;overflow:auto}
+.overlay.on{display:block}
+.book{max-width:900px;margin:0 auto;background:var(--panel);border:1px solid var(--line);border-radius:4px}
+.book .bhd{position:sticky;top:0;display:flex;justify-content:space-between;align-items:center;padding:12px;background:var(--panel2);border-bottom:1px solid var(--line)}
+.book .bhd h2{margin:0;font-size:19px;text-transform:uppercase}
+.book section{padding:12px 14px;border-bottom:1px solid var(--line-soft)}
+.book h3{margin:0 0 8px;font-size:14.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--info)}
+.book dt{font-weight:800;font-size:16px;margin-top:11px}
+.book dd{margin:2px 0 0;color:var(--dim);font-size:15px;line-height:1.45}
+.book dl{margin:0}
+
+/* AIR mode — one screen, no scrolling, in-flight glance */
+.air{position:fixed;inset:0;background:var(--bg);color:var(--txt);display:none;z-index:60;flex-direction:column;
+  padding:calc(8px + env(safe-area-inset-top)) calc(10px + env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom)) calc(10px + env(safe-area-inset-left));gap:6px;overflow:hidden}
+.air.on{display:flex}
+.air .ahd{display:flex;justify-content:space-between;align-items:center;gap:8px;font:800 13px/1.2 var(--mono);color:var(--dim)}
+.air .ahd .leds{display:flex;gap:9px;align-items:center}
+.air .decision{border-left:8px solid var(--st);padding:6px 12px;display:flex;flex-direction:column;justify-content:center;gap:2px;background:var(--panel);border-radius:3px;min-height:0;flex:0 0 auto}
+.air .decision .word{font:800 clamp(52px,17vw,96px)/1 var(--ui);color:var(--st);letter-spacing:.01em}
+.air .decision .why{font-size:clamp(15px,4.2vw,20px);color:var(--dim);line-height:1.3}
+.air .abar{background:var(--nogo);color:#fff;padding:10px 12px;font:800 clamp(17px,4.8vw,24px)/1.3 var(--ui);border-radius:3px;display:none}
+.air .abar.on{display:block}
+.air .abar.stale{background:var(--caution);color:#1a1200}
+.air .abar.off{background:#5b6d7c}
+.air .agrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;flex:1 1 auto;min-height:0}
+.air .acell{background:var(--panel);border:1px solid var(--line);border-radius:3px;padding:8px 10px;display:flex;flex-direction:column;justify-content:center;gap:2px;min-width:0;border-top:5px solid var(--st,var(--line))}
+.air .acell .k{font:800 11.5px/1.3 var(--ui);letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
+.air .acell .v{font:700 clamp(30px,10vw,56px)/1.05 var(--mono);font-variant-numeric:tabular-nums;color:var(--st,var(--txt));white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.air .acell .s{font:600 clamp(13px,3.6vw,17px)/1.3 var(--mono);color:var(--dim)}
+.air .acell.wind{grid-column:1/-1;flex-direction:row;align-items:center;gap:12px}
+.air .acell.wind .tile{flex:1;min-width:0}
+.air .aft{display:flex;gap:6px;flex:0 0 auto}
+.air .aft button{flex:1;font:800 17px/1 var(--ui);letter-spacing:.06em;text-transform:uppercase;padding:16px 10px;border-radius:3px;border:1px solid var(--line);background:var(--raise);color:var(--txt);cursor:pointer}
+.air .aft button.exit{border-color:var(--info);color:var(--info)}
+.obsage{font:700 12px/1.2 var(--mono)}
+@media (max-width:1000px){.bandtop{grid-template-columns:minmax(0,1fr)}.grid{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:480px){.status .word{font-size:38px}.air .aft button{padding:18px 10px;font-size:18px}}
+@media (max-width:560px){.mvals{grid-template-columns:repeat(2,minmax(0,1fr))}.locbar input{width:110px}.topbar .meta{margin-left:0;width:100%}.sites{margin-left:0;width:100%}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="offlinebar" id="offlinebar" role="alert" aria-live="assertive"></div>
+  <div class="stalebar" id="stalebar" role="alert" aria-live="assertive"></div>
+  <div class="disagree" id="disagree" role="alert" aria-live="polite"></div>
+
+  <header class="topbar">
+    <div class="ident"><b>PPG WX PANEL</b><span id="sitename">—</span></div>
+    <div class="meta">
+      <div><div class="lbl">Phone signal</div><div class="v" id="connv" style="display:flex;align-items:center;gap:6px"><span class="led" id="connled"></span><span id="conntxt">—</span></div></div>
+      <div><div class="lbl">Last reading</div><div class="v" id="obstime">—</div></div>
+      <div><div class="lbl">Now</div><div class="v" id="clock">—</div></div>
+      <button class="tgl hl" id="airbtn" type="button">Air mode</button>
+      <button class="tgl hl" id="full" type="button">Full screen</button>
+      <button class="tgl hl" id="manual" type="button">Manual</button>
+      <button class="tgl" id="refresh" type="button">Refresh</button>
+      <button class="tgl" id="theme" type="button">Light</button>
+    </div>
+  </header>
+
+  <div class="locbar">
+    <div class="f"><label for="i-lat">Latitude</label><input id="i-lat" type="number" step="0.0001" value="40.9243"></div>
+    <div class="f"><label for="i-lon">Longitude</label><input id="i-lon" type="number" step="0.0001" value="-81.6318"></div>
+    <button class="tgl" id="apply" type="button">Use these</button>
+    <button class="tgl" id="savesite" type="button">Save this spot</button>
+    <button class="tgl hl" id="gps" type="button">Use my GPS</button>
+    <div class="sites" id="sites"></div>
+  </div>
+
+  <div class="statusstrip" id="feeds"></div>
+  <div class="obsstrip" id="obsstrip"></div>
+
+  <section class="band">
+    <div class="bandtop">
+      <div class="status" id="status"></div>
+      <div class="brief" id="brief"></div>
+    </div>
+    <div class="tiles" id="tiles"></div>
+  </section>
+
+  <div class="warnbar" id="warnbar" role="alert" aria-live="assertive"></div>
+
+  <section class="panel">
+    <div class="panel-hd"><h2>Time to get back to launch</h2><span class="src">Live wind · your rig</span></div>
+    <div class="calcwrap">
+      <div class="inputs">
+        <div class="inp"><label for="i-dist">Distance out</label><input id="i-dist" type="number" inputmode="decimal" step="0.1" min="0" value="3"><em>miles from launch</em></div>
+        <div class="inp"><label for="i-course">Course home</label><input id="i-course" type="number" inputmode="numeric" step="5" min="0" max="360" value="210"><em>degrees you must fly</em></div>
+        <div class="inp"><label for="i-air">Air speed</label><input id="i-air" type="number" inputmode="numeric" step="1" min="5" value="26"><em>mph through the air</em></div>
+        <div class="inp"><label for="i-pwr">Power left</label><input id="i-pwr" type="number" inputmode="numeric" step="1" min="0" value="30"><em>minutes of battery</em></div>
+      </div>
+      <div class="results" id="results"></div>
+      <p class="rig">Rig: OpenPPG SP140 Explorer, Ozone Moto 30. Air speed is your input, not a measured spec — set it from your own GPS runs. Wind comes from the live feed; the math is a wind triangle, not a certified flight computer.</p>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-hd"><h2>Your limits</h2><span class="src">These drive every colour on this panel</span></div>
+    <div class="calcwrap">
+      <div class="inputs">
+        <div class="inp"><label for="l-wind">Max steady wind</label><input id="l-wind" type="number" inputmode="numeric" step="1" min="1" value="15"><em>mph</em></div>
+        <div class="inp"><label for="l-gust">Max gust</label><input id="l-gust" type="number" inputmode="numeric" step="1" min="1" value="20"><em>mph</em></div>
+        <div class="inp"><label for="l-spread">Max gust spread</label><input id="l-spread" type="number" inputmode="numeric" step="1" min="1" value="9"><em>mph above steady</em></div>
+        <div class="inp"><label for="l-shift">Max wind swing</label><input id="l-shift" type="number" inputmode="numeric" step="5" min="5" value="30"><em>degrees</em></div>
+        <div class="inp"><label for="l-shear">Max shear to 500 ft</label><input id="l-shear" type="number" inputmode="numeric" step="1" min="1" value="12"><em>mph gain over ground</em></div>
+      </div>
+      <p class="rig">Set these to your own numbers. They decide the launch decision word, the time-left-to-fly countdown and the warning logic below. They are saved on this device and survive a reload.
+        <button class="tgl" id="l-reset" type="button" style="margin-left:8px">Reset to defaults</button></p>
+    </div>
+  </section>
+
+  <div class="grid">
+    <div>
+      <section class="panel">
+        <div class="panel-hd"><h2>Current vs projected</h2><span class="src" id="wxsrc">—</span></div>
+        <div id="matrix"></div>
+      </section>
+      <section class="panel">
+        <div class="panel-hd"><h2>Trend progression</h2><span class="src">Now / +30 / +60 / +120 min</span></div>
+        <div class="strip" id="strip"></div>
+      </section>
+      <section class="panel">
+        <div class="panel-hd"><h2>Warning logic</h2><span class="src">Your limits</span></div>
+        <div id="rules"></div>
+      </section>
+    </div>
+    <div>
+      <section class="panel">
+        <div class="panel-hd"><h2>Warnings over your position</h2><span class="src">NWS · live</span></div>
+        <div id="hazards"></div>
+      </section>
+      <section class="panel">
+        <div class="panel-hd"><h2>Field summary</h2><span class="src">Live · winds aloft estimated</span></div>
+        <div id="field"></div>
+      </section>
+      <section class="panel">
+        <div class="panel-hd"><h2>Data sources</h2><span class="src">Live status</span></div>
+        <div class="srcgrid" id="sources"></div>
+      </section>
+    </div>
+  </div>
+
+  <p class="foot">NOW uses the freshest nearby METAR/ASOS. The 30/60/120 columns are still a model. Homemade panel — no quality control. Does not replace the sky, a windsock, or an official briefing. On a phone, add this page to your home screen from an https host so GPS and wake-lock work.</p>
+</div>
+
+<div class="air" id="air" aria-label="Air mode">
+  <div class="ahd">
+    <span id="a-site">—</span>
+    <span class="leds"><span class="led" id="a-connled"></span><span id="a-conn">—</span> &middot; <span id="a-clock">—</span></span>
+  </div>
+  <div class="abar" id="a-bar"></div>
+  <div class="decision" id="a-dec"><div class="word">—</div><div class="why">Loading…</div></div>
+  <div class="agrid" id="a-grid"></div>
+  <div class="aft">
+    <button type="button" id="a-refresh">Refresh</button>
+    <button type="button" class="exit" id="a-exit">Full panel</button>
+  </div>
+</div>
+
+<div class="overlay" id="ovl"><div class="book">
+  <div class="bhd"><h2>Manual and glossary</h2><button class="tgl" id="close" type="button">Close</button></div>
+  <div id="bookbody"></div>
+</div></div>
+
+<script>
+/* ================= CONFIG ================= */
+const LIMITS={wind:15, gust:20, spread:9, shift:30, shear:12};   // editable in the panel; saved on this device
+const LKEY="ppg_limits_v1";
+function saveLimits(){ try{ localStorage.setItem(LKEY,JSON.stringify(LIMITS)); }catch(e){} }
+function restoreLimits(){
+  try{ const v=JSON.parse(localStorage.getItem(LKEY)||"null");
+       if(v&&typeof v==="object") ["wind","gust","spread","shift","shear"].forEach(k=>{ if(+v[k]>0) LIMITS[k]=+v[k]; });
+  }catch(e){}
+}
+restoreLimits();   // mph, mph, mph, degrees
+const SITES=[{n:"Clinton launch",lat:40.9243,lon:-81.6318}];
+const SKEY="ppg_saved_sites_v1";
+const SELKEY="ppg_selected_site_v1";
+let SAVED=[];
+function loadSaved(){
+  try{ const v=JSON.parse(localStorage.getItem(SKEY)||"[]");
+    if(Array.isArray(v)) SAVED=v.filter(s=>s&&typeof s.n==="string"&&isFinite(+s.lat)&&isFinite(+s.lon))
+      .map(s=>({n:s.n,lat:+s.lat,lon:+s.lon}));
+  }catch(e){}
+}
+function persistSaved(){ try{ localStorage.setItem(SKEY,JSON.stringify(SAVED)); }catch(e){} }
+loadSaved();
+function restoreSelectedSite(){
+  try{ const v=JSON.parse(localStorage.getItem(SELKEY)||"null");
+    if(v&&isFinite(+v.lat)&&isFinite(+v.lon)) return {n:v.n||"Saved point",lat:+v.lat,lon:+v.lon};
+  }catch(e){}
+  return SITES[0];
+}
+// how old data can get before the panel stops trusting it and flags it as stale (minutes)
+const STALE={wx:90, al:10, near:10, obs:20, md:20};   // obs age is the station reading time; model stale is fetch/model age
+function ageMin(t){ return t?(Date.now()-t)/60000:null; }
+const NEARBY_STATES=["OH","PA","WV","KY","IN","MI"];   // states scanned for storms heading your way
+const NEAR_RADIUS=90;                                   // miles
+const KEYS=["NOW","+30 MIN","+60 MIN","+120 MIN"];
+const C={go:"var(--go)",watch:"var(--watch)",caution:"var(--caution)",nogo:"var(--nogo)",none:"var(--none)"};
+const S={site:restoreSelectedSite(),raw:null,steps:null,cur:null,alerts:null,near:null,obs:null,md:null,
+         stations:[], best:null,        // measured METAR/ASOS stations ranked for this site
+         pt:null,                       // NWS points lookup for this site: {state, stationsUrl}
+         model:"",                      // which model actually supplied the surface wind
+         gen:0,                         // bumps on every site change; in-flight responses for an old site are discarded
+         err:{},t:{wx:null,al:null,near:null,obs:null,md:null},next:{wx:null}};
+function isStale(key){
+  if(key==="obs"){
+    const src=S.best||S.obs;
+    const a=src&&src.when?(Date.now()-src.when.getTime())/60000:null;
+    return a==null||a>STALE.obs;
+  }
+  const a=ageMin(S.t[key]); return a==null || a>STALE[key]; }
+function measAgeMin(){
+  const src=S.best||S.obs;
+  return src&&src.when?(Date.now()-src.when.getTime())/60000:null;
+}
+function measFresh(){
+  const a=measAgeMin();
+  return S.best&&S.best.spd!=null&&S.best.dir!=null&&a!=null&&a<=STALE.obs;
+}
+function persistSelectedSite(){ try{ localStorage.setItem(SELKEY,JSON.stringify(S.site)); }catch(e){} }
+
+// ---- phone connectivity (separate from feed staleness — this reacts the instant the OS reports no signal) ----
+let OFFLINE = typeof navigator!=="undefined" && "onLine" in navigator ? !navigator.onLine : false;
+function updateConnLed(){
+  const led=document.getElementById("connled"), txt=document.getElementById("conntxt");
+  if(!led) return;
+  led.style.setProperty("--st", OFFLINE?"var(--nogo)":"var(--go)");
+  txt.textContent = OFFLINE?"OFFLINE":"ONLINE";
+  const al=document.getElementById("a-connled"), at=document.getElementById("a-conn");
+  if(al){ al.style.setProperty("--st", OFFLINE?"var(--nogo)":"var(--go)"); at.textContent=OFFLINE?"OFFLINE":"ONLINE"; }
+}
+if(typeof window!=="undefined"){
+  window.addEventListener("offline",()=>{ OFFLINE=true; updateConnLed(); render(); if(navigator.vibrate){ try{ navigator.vibrate([200,100,200]); }catch(e){} } });
+  window.addEventListener("online",()=>{ OFFLINE=false; updateConnLed(); render(); loadAll(); });
+}
+
+const cardinal=d=>["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"][Math.round(d/22.5)%16];
+const el=h=>{const t=document.createElement("template");t.innerHTML=h.trim();return t.content.firstElementChild;};
+const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fmt=d=>{const h=d.getHours();return `${(h%12)||12}:${String(d.getMinutes()).padStart(2,"0")} ${h<12?"AM":"PM"}`;};
+const dirLerp=(a,b,t)=>{const x=(1-t)*Math.cos(a*Math.PI/180)+t*Math.cos(b*Math.PI/180),y=(1-t)*Math.sin(a*Math.PI/180)+t*Math.sin(b*Math.PI/180);return (Math.atan2(y,x)*180/Math.PI+360)%360;};
+
+/* ================= FETCH ================= */
+const OM="https://api.open-meteo.com/v1/forecast";
+const M15=["wind_speed_10m","wind_direction_10m","wind_gusts_10m","temperature_2m","dew_point_2m","visibility","cloud_cover",
+           "wind_speed_80m","wind_direction_80m","wind_speed_120m","wind_direction_120m","wind_speed_180m","wind_direction_180m"];
+
+const CUR=["wind_speed_10m","wind_direction_10m","wind_gusts_10m","temperature_2m","dew_point_2m","pressure_msl","surface_pressure","visibility","cloud_cover"];
+const HRRR="gfs_hrrr";   // Open-Meteo's key for the NOAA HRRR 3 km rapid-refresh model
+function omUrl(lat,lon,models){
+  return `${OM}?latitude=${lat}&longitude=${lon}`
+    +`&current=${CUR.join(",")}`
+    +`&minutely_15=${M15.join(",")}`
+    +`&hourly=pressure_msl`
+    +`&forecast_minutely_15=32&past_minutely_15=1&forecast_hours=6&past_hours=2`   // 8 hours of 15-min steps is all the panel scans; smaller payload, faster on cell data
+    +`&wind_speed_unit=mph&temperature_unit=fahrenheit&timezone=auto`
+    +(models?`&models=${models}`:"");
+}
+// When two models are requested Open-Meteo suffixes every variable (wind_speed_10m_gfs_hrrr, wind_speed_10m_best_match).
+// Fold that back into plain names: HRRR wins wherever it has data, best-match fills the rest, and we remember which model fed the wind.
+function normalizeOM(j){
+  const out={elevation:j.elevation,current:{},current_units:{},minutely_15:{},minutely_15_units:{},hourly:{},hourly_units:{},model:{}};
+  const pick=(blk,units,name)=>{
+    const src=j[blk]||{}, su=j[units]||{};
+    const h=src[name+"_"+HRRR], b=src[name+"_best_match"], plain=src[name];
+    const has=v=>v!=null&&(!Array.isArray(v)||v.some(x=>x!=null));
+    if(has(h)){
+      // step by step: HRRR value where it has one, best-match where it doesn't (e.g. beyond HRRR's horizon)
+      out[blk][name]=Array.isArray(h)?h.map((x,i)=>x!=null?x:(Array.isArray(b)?b[i]:null)):h;
+      out[units][name]=su[name+"_"+HRRR]||su[name]; out.model[name]="HRRR"; }
+    else if(has(b)){ out[blk][name]=b; out[units][name]=su[name+"_best_match"]||su[name]; out.model[name]="best match"; }
+    else { out[blk][name]=plain??null; out[units][name]=su[name]; out.model[name]=plain!=null?"best match":"none"; }
+  };
+  out.current.time=j.current?j.current.time:null;
+  out.minutely_15.time=j.minutely_15?j.minutely_15.time:[];
+  out.hourly.time=j.hourly?j.hourly.time:[];
+  CUR.forEach(v=>pick("current","current_units",v));
+  M15.forEach(v=>pick("minutely_15","minutely_15_units",v));
+  pick("hourly","hourly_units","pressure_msl");
+  return out;
+}
+async function getWeather(lat,lon){
+  let r=await fetch(omUrl(lat,lon,`${HRRR},best_match`),{cache:"no-store"});
+  let j=r.ok?await r.json():{error:true,reason:"weather feed "+r.status};
+  if(j.error){   // HRRR request refused (model key change, outage, outside CONUS) — fall back to the blend rather than go dark
+    r=await fetch(omUrl(lat,lon,null),{cache:"no-store"});
+    if(!r.ok) throw new Error("weather feed "+r.status);
+    j=await r.json();
+    if(j.error) throw new Error(j.reason||"weather feed error");
+  }
+  const n=normalizeOM(j);
+  if(!n.minutely_15.time.length||n.minutely_15.wind_speed_10m==null) throw new Error("weather feed returned no wind");
+  return n;
+}
+// visibility arrives in whatever unit the feed says — never assume
+function toMiles(v,unit){ if(v==null) return null; unit=(unit||"m").toLowerCase();
+  if(unit==="ft"||unit==="feet") return v/5280; if(unit==="km") return v/1.609; if(unit==="mi"||unit==="miles") return v; return v/1609.34; }
+async function getAlerts(lat,lon){
+  const r=await fetch(`https://api.weather.gov/alerts/active?point=${lat.toFixed(4)},${lon.toFixed(4)}`,{headers:{Accept:"application/geo+json"},cache:"no-store"});
+  if(!r.ok) throw new Error("alerts feed "+r.status);
+  const j=await r.json();
+  return (j.features||[]).map(f=>f.properties);
+}
+
+const R_MI=3958.8, rad=x=>x*Math.PI/180, deg=x=>x*180/Math.PI;
+function dist(a,b,c,d){const dLat=rad(c-a),dLon=rad(d-b);
+  const h=Math.sin(dLat/2)**2+Math.cos(rad(a))*Math.cos(rad(c))*Math.sin(dLon/2)**2;
+  return 2*R_MI*Math.asin(Math.sqrt(h));}
+function bearing(a,b,c,d){const y=Math.sin(rad(d-b))*Math.cos(rad(c));
+  const x=Math.cos(rad(a))*Math.sin(rad(c))-Math.sin(rad(a))*Math.cos(rad(c))*Math.cos(rad(d-b));
+  return (deg(Math.atan2(y,x))+360)%360;}
+function ringsOf(geom){ if(!geom) return [];
+  if(geom.type==="Polygon") return geom.coordinates;
+  if(geom.type==="MultiPolygon") return geom.coordinates.flat();
+  return []; }
+function inside(lat,lon,ring){let hit=false;
+  for(let i=0,j=ring.length-1;i<ring.length;j=i++){
+    const [xi,yi]=ring[i],[xj,yj]=ring[j];
+    if((yi>lat)!==(yj>lat)&&lon<(xj-xi)*(lat-yi)/(yj-yi)+xi) hit=!hit;}
+  return hit;}
+function motionOf(pr){
+  const raw=(pr.parameters&&pr.parameters.eventMotionDescription||[])[0];
+  if(!raw) return null;
+  const m=raw.match(/(\d{1,3})DEG\.\.\.(\d{1,3})KT/);
+  if(!m) return null;
+  return {from:+m[1], toward:(+m[1]+180)%360, mph:Math.round(+m[2]*1.15078)};}
+
+// One NWS "points" lookup per site, cached: gives the state (for mesoscale filtering) and the station list URL.
+async function getPoints(lat,lon){
+  if(S.pt&&S.pt.lat===lat&&S.pt.lon===lon) return S.pt;
+  const r=await fetch(`https://api.weather.gov/points/${lat.toFixed(4)},${lon.toFixed(4)}`,{headers:{Accept:"application/geo+json"}});
+  if(!r.ok) throw new Error("NWS points "+r.status);
+  const pr=await r.json();
+  const state=pr.properties&&pr.properties.relativeLocation&&pr.properties.relativeLocation.properties.state||null;
+  S.pt={lat,lon,state,stationsUrl:pr.properties.observationStations,station:null};
+  return S.pt;
+}
+// NWS reports each value with its own unitCode (wind is km/h these days, not m/s) — convert from what it says, never from what we assume
+function nwsMph(q){ if(!q||q.value==null) return null; const u=String(q.unitCode||"").toLowerCase();
+  if(u.includes("km_h")) return Math.round(q.value/1.609344);
+  if(u.includes("m_s")||u.includes("m/s")) return Math.round(q.value*2.23694);
+  if(u.includes("kn")||u.includes("kt")) return Math.round(q.value*1.15078);
+  if(u.includes("mi_h")||u.includes("mph")) return Math.round(q.value);
+  return Math.round(q.value/1.609344); }   // unknown code: NWS default is km/h
+function nwsFt(q){ if(!q||q.value==null) return null; const u=String(q.unitCode||"").toLowerCase();
+  if(u.includes(":ft")) return q.value; return q.value*3.28084; }
+function nwsF(q){ if(!q||q.value==null) return null; const u=String(q.unitCode||"").toLowerCase();
+  if(u.includes("degf")) return Math.round(q.value); return Math.round(q.value*9/5+32); }
+function ktMph(v){ return v==null||v===""||isNaN(+v)?null:Math.round(+v*1.15078); }
+function stationScore(s){
+  if(!s||s.spd==null||s.dir==null||!s.when) return 1e9;
+  const age=Math.max(0,(Date.now()-s.when.getTime())/60000);
+  if(age>45) return 1e9;
+  return age*1.8 + (s.mi||99)*0.7;
+}
+function pickBest(list){
+  const scored=list.filter(Boolean).slice().sort((a,b)=>stationScore(a)-stationScore(b));
+  return scored.find(s=>stationScore(s)<1e9)||null;
+}
+async function getObs(lat,lon){
+  const pt=await getPoints(lat,lon);
+  if(!pt.stationList){
+    const r=await fetch(pt.stationsUrl,{headers:{Accept:"application/geo+json"}});
+    if(!r.ok) throw new Error("NWS stations "+r.status);
+    pt.stationList=((await r.json()).features||[]).slice(0,6).map(st=>({
+      id:st.properties.stationIdentifier,name:st.properties.name,
+      lat:st.geometry.coordinates[1],lon:st.geometry.coordinates[0]
+    }));
+  }
+  if(!pt.stationList.length) throw new Error("no station nearby");
+  const reads=await Promise.all(pt.stationList.map(async st=>{
+    try{
+      const r=await fetch(`https://api.weather.gov/stations/${st.id}/observations/latest`,{headers:{Accept:"application/geo+json"},cache:"no-store"});
+      if(!r.ok) return null;
+      const o=(await r.json()).properties||{};
+      const layers=(o.cloudLayers||[]).filter(L=>L.base&&L.base.value!=null)
+          .map(L=>({amt:L.amount||"",ft:Math.round(nwsFt(L.base)/100)*100}));
+      const ceilL=(o.cloudLayers||[]).find(L=>/BKN|OVC/.test(L.amount||"")&&L.base&&L.base.value!=null);
+      return {id:st.id,name:st.name,src:"NWS",state:pt.state,mi:+dist(lat,lon,st.lat,st.lon).toFixed(1),
+        when:o.timestamp?new Date(o.timestamp):null,
+        dir:o.windDirection&&o.windDirection.value!=null?Math.round(o.windDirection.value):null,
+        spd:nwsMph(o.windSpeed), gust:nwsMph(o.windGust), temp:nwsF(o.temperature),
+        layers, ceil:ceilL?Math.round(nwsFt(ceilL.base)/100)*100:null,
+        text:o.textDescription||""};
+    }catch(e){ return null; }
+  }));
+  const good=reads.filter(Boolean);
+  if(!good.length) throw new Error("no station observations");
+  pt.station=pt.stationList[0];
+  return good;
+}
+async function getMetars(lat,lon){
+  const pad=0.55;
+  const bbox=[(lat-pad).toFixed(4),(lon-pad).toFixed(4),(lat+pad).toFixed(4),(lon+pad).toFixed(4)].join(",");
+  const ids="KBJJ,KCAK,KAKR,KCLE,KYNG";
+  const urls=[
+    `https://aviationweather.gov/api/data/metar?ids=${ids}&format=json&hours=2`,
+    `https://aviationweather.gov/api/data/metar?bbox=${bbox}&format=json&hours=2`
+  ];
+  const bags=await Promise.all(urls.map(async u=>{
+    try{
+      const r=await fetch(u,{cache:"no-store"});
+      if(!r.ok) return [];
+      const j=await r.json();
+      return Array.isArray(j)?j:[];
+    }catch(e){ return []; }
+  }));
+  const seen=new Set();
+  const out=[];
+  for(const row of bags.flat()){
+    const id=row.icaoId||row.stationId||row.id;
+    if(!id||seen.has(id)) continue;
+    seen.add(id);
+    const rawT=row.obsTime??row.reportTime;
+    const when=rawT==null?null:new Date(typeof rawT==="number"?(rawT<1e12?rawT*1000:rawT):rawT);
+    const slat=row.lat, slon=row.lon;
+    if(slat==null||slon==null) continue;
+    const mi=+dist(lat,lon,slat,slon).toFixed(1);
+    if(mi>45) continue;
+    const dir=row.wdir==null||row.wdir==="VRB"?null:Math.round(+row.wdir);
+    out.push({id,name:id,src:"METAR",mi,when,
+      dir,spd:ktMph(row.wspd),gust:ktMph(row.wgst),
+      temp:row.temp==null?null:Math.round(row.temp*9/5+32),
+      raw:row.rawOb||row.raw||"",text:row.wxString||""});
+  }
+  return out;
+}
+function mergeStations(nwsList, metars){
+  const map=new Map();
+  (nwsList||[]).concat(metars||[]).forEach(s=>{
+    if(!s||!s.id) return;
+    const prev=map.get(s.id);
+    if(!prev){ map.set(s.id,s); return; }
+    const pa=prev.when?prev.when.getTime():0, na=s.when?s.when.getTime():0;
+    if(na>=pa){
+      map.set(s.id,{...prev,...s, layers:s.layers||prev.layers, ceil:s.ceil!=null?s.ceil:prev.ceil, name:prev.name||s.name});
+    }
+  });
+  return [...map.values()].sort((a,b)=>stationScore(a)-stationScore(b));
+}
+async function getMD(state){
+  const lr=await fetch("https://api.weather.gov/products/types/SWOMCD",{headers:{Accept:"application/ld+json"},cache:"no-store"});
+  if(!lr.ok) throw new Error("mesoscale list "+lr.status);
+  const l=await lr.json();
+  const items=(l["@graph"]||[]).slice(0,6), out=[];
+  for(const it of items){
+    const age=(Date.now()-new Date(it.issuanceTime))/3600000;
+    if(age>4) continue;
+    const tr=await fetch(it["@id"],{headers:{Accept:"application/ld+json"}});
+    if(!tr.ok) continue;
+    const t=(await tr.json()).productText||"";
+    const mine=state?new RegExp(state+"Z").test(t)||new RegExp("\\b"+state+"\\b").test(t.split("Concerning")[0]||""):false;
+    const num=(t.match(/Mesoscale Discussion\s+(\d+)/)||[])[1]||"";
+    const areas=((t.match(/Areas affected\.\.\.([^\n]*)/)||[])[1]||"").trim();
+    const conc=((t.match(/Concerning\.\.\.([^\n]*)/)||[])[1]||"").trim();
+    const prob=((t.match(/Probability of Watch Issuance\.\.\.([^\n]*)/)||[])[1]||"").trim();
+    out.push({num,areas,conc,prob,mine,when:new Date(it.issuanceTime)});
+  }
+  return out;
+}
+async function getNearby(lat,lon){
+  const out=[];
+  // one request for all six states instead of six — NWS accepts a comma-separated area list
+  const r=await fetch(`https://api.weather.gov/alerts/active?area=${NEARBY_STATES.join(",")}`,{headers:{Accept:"application/geo+json"},cache:"no-store"});
+  if(!r.ok) throw new Error("nearby feed "+r.status);
+  const j=await r.json();
+  {
+    for(const f of (j.features||[])){
+      if(!/Warning/i.test(f.properties.event)) continue;
+      if(!/Tornado|Thunderstorm|Wind|Flash Flood/i.test(f.properties.event)) continue;
+      const rings=ringsOf(f.geometry); if(!rings.length) continue;
+      let best=1e9,bp=null,over=false;
+      for(const ring of rings){
+        if(inside(lat,lon,ring)) over=true;
+        for(const [x,y] of ring){const d=dist(lat,lon,y,x); if(d<best){best=d;bp=[y,x];}}
+      }
+      if(over) best=0;
+      if(best>NEAR_RADIUS) continue;
+      const mo=motionOf(f.properties);
+      let eta=null;
+      if(mo&&best>0&&bp){
+        const toMe=bearing(bp[0],bp[1],lat,lon);
+        let diff=Math.abs(toMe-mo.toward); if(diff>180) diff=360-diff;
+        const closing=mo.mph*Math.cos(rad(diff));
+        if(closing>1) eta=Math.round(best/closing*60);
+      }
+      out.push({event:f.properties.event,head:f.properties.headline||f.properties.areaDesc||"",
+        expires:f.properties.expires,mi:Math.round(best),brg:bp?Math.round(bearing(lat,lon,bp[0],bp[1])):null,
+        over,motion:mo,eta,rings});
+    }
+  }
+  const seen=new Set();
+  return out.sort((a,b)=>a.mi-b.mi).filter(a=>{const k=a.event+a.head; if(seen.has(k))return false; seen.add(k); return true;});
+}
+/* ================= SHAPE THE DATA ================= */
+function windAt(step,ftAGL){
+  const m=ftAGL*0.3048, H=[10,80,120,180], sp=[step.s10,step.s80,step.s120,step.s180], dr=[step.d10,step.d80,step.d120,step.d180];
+  if(sp.some(v=>v==null)) return null;
+  if(m<=180){
+    for(let i=0;i<3;i++) if(m<=H[i+1]){
+      const t=(m-H[i])/(H[i+1]-H[i]);
+      return {s:sp[i]+(sp[i+1]-sp[i])*t, d:dirLerp(dr[i],dr[i+1],t), est:false};
+    }
+  }
+  let a=Math.log(Math.max(sp[3],0.1)/Math.max(sp[2],0.1))/Math.log(180/120);
+  a=Math.min(Math.max(a,0),0.45);
+  let veer=dr[3]-dr[2]; if(veer>180)veer-=360; if(veer<-180)veer+=360;
+  veer=Math.min(Math.max(veer,-20),20)*((m-180)/60);
+  return {s:sp[3]*Math.pow(m/180,a), d:((dr[3]+veer)%360+360)%360, est:true};
+}
+// Called on EVERY render, not just on fetch, so the NOW column always sits on the current 15-minute step
+// and a limit change recolours the countdown instantly.
+function buildSteps(j){
+  const t=j.minutely_15.time, now=Date.now();
+  let i=t.findIndex(x=>new Date(x).getTime()>now); i=i<0?t.length-1:Math.max(0,i-1);
+  const visU=j.minutely_15_units&&j.minutely_15_units.visibility;
+  const pick=k=>{const n=Math.min(i+k,t.length-1),g=v=>j.minutely_15[v]?j.minutely_15[v][n]:null;
+    return {time:new Date(t[n]),
+      spd:g("wind_speed_10m")==null?null:Math.round(g("wind_speed_10m")), dir:g("wind_direction_10m")==null?null:Math.round(g("wind_direction_10m")), gust:g("wind_gusts_10m")==null?null:Math.round(g("wind_gusts_10m")),
+      temp:g("temperature_2m"), dew:g("dew_point_2m"), vis:toMiles(g("visibility"),visU), cloud:g("cloud_cover"),
+      s10:g("wind_speed_10m"),d10:g("wind_direction_10m"),s80:g("wind_speed_80m"),d80:g("wind_direction_80m"),
+      s120:g("wind_speed_120m"),d120:g("wind_direction_120m"),s180:g("wind_speed_180m"),d180:g("wind_direction_180m")};};
+  const steps=[pick(0),pick(2),pick(4),pick(8)];
+  // pressure trend, inHg per hour
+  const ph=j.hourly.pressure_msl||[], ht=j.hourly.time||[]; let k=ht.findIndex(x=>new Date(x).getTime()>now); k=k<0?ht.length-1:k; k=Math.max(1,k-1);
+  const trend=(ph.length>1&&ph[k]!=null&&ph[k-1]!=null)?((ph[k]-ph[k-1])*0.02953):0;
+  steps.forEach(s=>{ if(s.gust==null&&s.spd!=null) s.gust=s.spd; s.spread=(s.gust==null||s.spd==null)?null:Math.max(0,Math.round(s.gust-s.spd)); });
+  // first breach
+  let breach=null;
+  const t15=j.minutely_15.time;
+  for(let n=i;n<Math.min(i+16,t15.length);n++){
+    const sp=j.minutely_15.wind_speed_10m[n], gu=j.minutely_15.wind_gusts_10m[n], d=j.minutely_15.wind_direction_10m[n];
+    let shift=Math.abs(d-steps[0].dir); if(shift>180)shift=360-shift;
+    if(sp==null||d==null) continue;
+    if(sp>LIMITS.wind||(gu!=null&&gu>LIMITS.gust)||(gu!=null&&(gu-sp)>LIMITS.spread)||shift>LIMITS.shift){breach=Math.max(0,Math.round((new Date(t15[n])-Date.now())/60000));break;}
+  }
+  const cu=j.current_units||{};
+  return {steps,trend,breach,elev:j.elevation,obs:j.current.time?new Date(j.current.time):new Date(t[i]),
+          model:j.model||{},
+          cur:{temp:j.current.temperature_2m??steps[0].temp,dew:j.current.dew_point_2m??steps[0].dew,vis:toMiles(j.current.visibility,cu.visibility),cloud:j.current.cloud_cover??steps[0].cloud,
+               pmsl:j.current.pressure_msl,psfc:j.current.surface_pressure}};
+}
+function shearOf(step){
+  const a=windAt(step,500);
+  if(!a) return null;
+  let dd=a.d-step.dir; if(dd>180)dd-=360; if(dd<-180)dd+=360;
+  return {gain:Math.round(a.s-step.spd), turn:Math.round(dd), at500:Math.round(a.s), dir500:Math.round(a.d)};
+}
+function densityAlt(d){
+  if(d.cur.pmsl==null||d.cur.temp==null||d.elev==null) return null;
+  const elevFt=d.elev*3.28084, alt=d.cur.pmsl*0.02953;
+  const pa=elevFt+(29.92-alt)*1000, isa=15-1.98*(elevFt/1000), oat=(d.cur.temp-32)*5/9;
+  return Math.round(pa+118.8*(oat-isa));
+}
+function stepLevel(s,base){
+  let shift=Math.abs(s.dir-base); if(shift>180)shift=360-shift;
+  if(s.spd>LIMITS.wind||s.gust>LIMITS.gust||s.spread>LIMITS.spread) return "nogo";
+  if(shift>LIMITS.shift||s.spd>LIMITS.wind*0.85||s.spread>LIMITS.spread-2) return "caution";
+  if(s.spd>LIMITS.wind*0.7) return "watch";
+  return "go";
+}
+
+/* ================= RENDER ================= */
+function compass(deg,color,size){
+  let ticks="";
+  for(let a=0;a<360;a+=30){const r1=a%90===0?29:32,r2=36,r=(a-90)*Math.PI/180;
+    ticks+=`<line x1="${50+r1*Math.cos(r)}" y1="${50+r1*Math.sin(r)}" x2="${50+r2*Math.cos(r)}" y2="${50+r2*Math.sin(r)}" stroke="var(--line)" stroke-width="${a%90===0?2:1.2}"/>`;}
+  return `<svg width="${size}" height="${size}" viewBox="0 0 100 100" aria-label="Wind from ${Math.round(deg)} degrees">
+    <circle cx="50" cy="50" r="36" fill="none" stroke="var(--line)" stroke-width="1.6"/>${ticks}
+    <text x="50" y="12" text-anchor="middle" font-size="12" font-weight="800" font-family="monospace" fill="var(--dim)">N</text>
+    <text x="94" y="55" text-anchor="middle" font-size="12" font-family="monospace" fill="var(--faint)">E</text>
+    <text x="50" y="99" text-anchor="middle" font-size="12" font-family="monospace" fill="var(--faint)">S</text>
+    <text x="6" y="55" text-anchor="middle" font-size="12" font-family="monospace" fill="var(--faint)">W</text>
+    <g transform="rotate(${deg} 50 50)"><circle cx="50" cy="15" r="4.5" fill="${color}"/>
+      <line x1="50" y1="19" x2="50" y2="38" stroke="${color}" stroke-width="4" stroke-linecap="round"/>
+      <path d="M50 52 L59 34 L41 34 Z" fill="${color}"/></g></svg>`;
+}
+function miniDir(deg,color,size){
+  return `<svg width="${size}" height="${size}" viewBox="0 0 100 100" aria-hidden="true" style="flex:0 0 ${size}px">
+    <circle cx="50" cy="50" r="42" fill="none" stroke="var(--line)" stroke-width="7"/>
+    <g transform="rotate(${deg} 50 50)"><circle cx="50" cy="12" r="7" fill="${color}"/><path d="M50 60 L62 30 L38 30 Z" fill="${color}"/></g></svg>`;
+}
+
+function agoTxt(t){ const s=Math.round((Date.now()-t)/1000); return s<90?`${s}s ago`:`${Math.round(s/60)} min ago`; }
+function rowState(err,data,t,staleMin){
+  if(err) return ["ERROR","nogo"];
+  if(!data) return ["loading","none"];
+  const a=ageMin(t);
+  if(a!=null&&a>staleMin) return ["STALE","caution"];
+  return ["LIVE","go"];
+}
+function feeds(){
+  const rows=[
+    ["Wind and forecast", ...rowState(S.err.wx,S.steps,S.t.wx,STALE.wx), S.t.wx],
+    ["NWS warnings", ...rowState(S.err.al,S.alerts,S.t.al,STALE.al), S.t.al],
+    ["Nearby storms", ...rowState(S.err.near,S.near,S.t.near,STALE.near), S.t.near],
+    ["Measured wind (METAR)", ...rowState(S.err.obs,S.best,S.best&&S.best.when?S.best.when.getTime():null,STALE.obs), S.best&&S.best.when?S.best.when.getTime():null],
+    ["Mesoscale discussions", ...rowState(S.err.md,S.md,S.t.md,STALE.md), S.t.md],
+  ];
+  document.getElementById("feeds").innerHTML=rows.map(([n,st,lvl,t])=>
+    `<div style="--st:${C[lvl]}"><span class="led"></span>${n}: <b style="color:${C[lvl]}">${st}</b>${t?` &middot; ${st==="ERROR"?"last good ":""}${agoTxt(t)}`:""}</div>`).join("");
+}
+
+function render(){
+  feeds();
+  document.getElementById("sitename").textContent=`${S.site.n} · ${S.site.lat.toFixed(4)}, ${S.site.lon.toFixed(4)}`;
+  refreshCountdown();
+  let d=S.raw?(S.steps=buildSteps(S.raw)):null;
+  if(d&&(d.steps[0].spd==null||d.steps[0].dir==null)){ d=null; S.steps=null; if(!S.err.wx) S.err.wx="feed has no wind for the current time step"; }
+  const alerts=S.alerts||[];
+  const bad=alerts.filter(a=>/Tornado Warning|Severe Thunderstorm Warning/i.test(a.event));
+
+  // ---- warn bar (tornado / severe t-storm warning over you, right now)
+  const wb=document.getElementById("warnbar");
+  const wasOn=wb.classList.contains("on");
+  if(bad.length){
+    wb.textContent="LAND NOW — "+bad.map(a=>a.event.toUpperCase()).join(" + ")+" over your position";
+    wb.classList.add("on");
+    if(!wasOn&&navigator.vibrate){ try{ navigator.vibrate([250,120,250,120,250]); }catch(e){} }
+  }
+  else wb.classList.remove("on");
+
+  // ---- offline bar (phone has no signal right now — instant, doesn't wait on a failed fetch)
+  const ob=document.getElementById("offlinebar");
+  updateConnLed();
+  if(OFFLINE){
+    ob.textContent="PHONE OFFLINE — no signal. Nothing below can update until it's back. Check the sky and a windsock.";
+    ob.classList.add("on");
+  } else ob.classList.remove("on");
+
+  // ---- stale bar (data itself can't be trusted right now — separate from bad weather)
+  const sb=document.getElementById("stalebar");
+  const wxAge=ageMin(S.t.wx), alAge=ageMin(S.t.al), mAge=measAgeMin();
+  const wxStale=wxAge!=null&&wxAge>STALE.wx, alStale=alAge!=null&&alAge>STALE.al;
+  const obsStale=!measFresh();
+  if(!OFFLINE&&(wxStale||alStale||(S.stations.length&&obsStale))){
+    const bits=[];
+    if(obsStale) bits.push(mAge==null?"no fresh METAR":`measured wind ${Math.round(mAge)} min old`);
+    if(wxStale) bits.push(`model ${Math.round(wxAge)} min old`);
+    if(alStale) bits.push(`warnings checked ${Math.round(alAge)} min ago`);
+    sb.textContent="STALE DATA — "+bits.join(", ")+". Check the sky and windsock before you trust this panel.";
+    sb.classList.add("on");
+  } else sb.classList.remove("on");
+  const strip=document.getElementById("obsstrip");
+  if(strip){
+    const list=(S.stations||[]).slice(0,4);
+    strip.innerHTML=list.length?list.map(s=>{
+      const age=s.when?agoTxt(s.when.getTime()):"no time";
+      const best=S.best&&S.best.id===s.id;
+      const wind=s.spd==null?"no wind":`${s.dir!=null?s.dir+"° ":""}${s.spd} mph${s.gust!=null?" g"+s.gust:""}`;
+      return `<div class="obschip${best?" best":""}"><div class="n">${esc(s.id)}${best?" · USED":""}</div><div class="d">${wind}<br>${s.mi} mi · ${age} · ${esc(s.src||"")}</div></div>`;
+    }).join(""):`<div class="obschip"><div class="n">Measured wind</div><div class="d">${S.err.obs?esc(S.err.obs):"Loading METAR / ASOS…"}</div></div>`;
+  }
+
+  if(!d && !measFresh()){
+    document.getElementById("status").style.setProperty("--st",C.none);
+    document.getElementById("status").innerHTML=`<div class="lbl">Launch decision</div><div class="word">NO DATA</div>
+      <div class="why">${S.err.obs||S.err.wx?"Feeds: "+esc([S.err.obs,S.err.wx].filter(Boolean).join(" · ")):"Loading live weather…"}</div>`;
+    document.getElementById("brief").innerHTML="";document.getElementById("tiles").innerHTML="";
+    document.getElementById("matrix").innerHTML="";document.getElementById("strip").innerHTML="";
+    document.getElementById("results").innerHTML="";document.getElementById("field").innerHTML="";
+    const dg0=document.getElementById("disagree"); if(dg0) dg0.classList.remove("on");
+    hazards();rules();sources();airRender(null,"none","NO DATA",S.err.wx||S.err.obs||"Loading live weather…",bad,wxStale,alStale);return;
+  }
+
+  const w=d?d.steps:[{dir:S.best.dir,spd:S.best.spd,gust:S.best.gust||S.best.spd,spread:Math.max(0,(S.best.gust||S.best.spd)-S.best.spd),time:new Date(),temp:S.best.temp,dew:null,vis:null,cloud:null,s10:S.best.spd,d10:S.best.dir,s80:null,d80:null,s120:null,d120:null,s180:null,d180:null}];
+  if(measFresh()){
+    w[0]={...w[0], dir:S.best.dir, spd:S.best.spd, gust:S.best.gust!=null?S.best.gust:S.best.spd,
+      spread:Math.max(0,Math.round((S.best.gust!=null?S.best.gust:S.best.spd)-S.best.spd)),
+      s10:S.best.spd, d10:S.best.dir};
+  }
+  const base=w[0].dir;
+  const lvls=w.map(s=>{
+    const l=stepLevel(s,base),sh=shearOf(s);
+    if(l!=="go") return l;
+    if(!sh) return "watch";
+    return sh.gain>=LIMITS.shear?"caution":l;
+  });
+  const closeStorm=(S.near||[]).find(a=>/Tornado|Thunderstorm/i.test(a.event)&&(a.over||a.mi<=25||(a.eta!=null&&a.eta<=45)));
+  let level=bad.length?"nogo":closeStorm?(closeStorm.mi<=15||closeStorm.over?"nogo":"caution"):lvls[0];
+  if(!bad.length&&level==="go"){ if(w[1]&&lvls[1]!=="go")level="watch"; else if(lvls[2]==="nogo"||lvls[3]==="nogo")level="watch"; }
+  if((wxStale||alStale||OFFLINE||obsStale)&&level==="go") level="watch";
+  const modelNow=d&&d.steps[0];
+  let disagree=null;
+  if(measFresh()&&modelNow&&modelNow.spd!=null&&modelNow.dir!=null){
+    let dd=Math.abs(S.best.dir-modelNow.dir); if(dd>180) dd=360-dd;
+    const ds=Math.abs(S.best.spd-modelNow.spd);
+    if(ds>=4||dd>=30) disagree={ds,dd,model:modelNow};
+  }
+  const dg=document.getElementById("disagree");
+  if(disagree){
+    dg.textContent=`MODEL ≠ METER — ${S.best.id} is ${S.best.spd} mph / ${S.best.dir}°. Model says ${disagree.model.spd} mph / ${disagree.model.dir}° (${disagree.ds} mph, ${Math.round(disagree.dd)}° apart). Trust the windsock.`;
+    dg.classList.add("on");
+    if(level==="go") level="watch";
+  } else dg.classList.remove("on");
+  const word={go:"FLY",watch:"WATCH",caution:"MARGINAL",nogo:"NO-GO"}[level];
+  let why;
+  if(bad.length) why=bad[0].headline||bad[0].event;
+  else if(level==="nogo") why=`Wind ${w[0].spd} gusting ${w[0].gust} mph, spread +${w[0].spread}. Past your limits of ${LIMITS.wind}/${LIMITS.gust}/+${LIMITS.spread}.`;
+  else if(closeStorm&&level!=="go") why=`${closeStorm.event} ${closeStorm.over?"over you":closeStorm.mi+" mi "+cardinal(closeStorm.brg)}${closeStorm.eta!=null?", here in about "+closeStorm.eta+" min":""}.`;
+  else if(obsStale) why=mAge==null?"No fresh airport reading. Decision is on the model only — look at the sock.":`Best METAR is ${Math.round(mAge)} min old. Treat colors as a snapshot.`;
+  else if(level==="caution") why="Conditions are at the edge of your limits right now.";
+  else if(level==="watch"&&OFFLINE) why="Your phone has no signal — see the banner above. Nothing here can update until it's back.";
+  else if(level==="watch"&&(wxStale||alStale)) why="Data is stale — see the banner above. Verify with a look at the sky before launching.";
+  else if(disagree) why=`Measured ${S.best.id} and the model disagree. Use the sock.`;
+  else if(level==="watch") why=d&&d.breach!=null?`Flyable now. Model crosses a limit in about ${d.breach} minutes.`:"Flyable on the meter now, but the next hour is building.";
+  else why="Inside all of your limits on the measured wind now, and the model stays inside for two hours.";
+
+  const st=document.getElementById("status");
+  st.style.setProperty("--st",C[level]);
+  const measNote=measFresh()?`${S.best.id} · ${S.best.mi} mi · ${agoTxt(S.best.when.getTime())}`:"model only";
+  st.innerHTML=`<div class="lbl">Launch decision · ${esc(measNote)}</div><div class="word">${word}</div><div class="why">${esc(why)}</div>`;
+  if(!d){
+    document.getElementById("brief").innerHTML=`<div><b>Wind</b><span>Measured ${esc(S.best.id)} ${w[0].dir}&deg; at ${w[0].spd} gusting ${w[0].gust}.</span></div>`;
+    document.getElementById("tiles").innerHTML="";
+    hazards();rules();sources();calc();airRender(null,level,word,why,bad,wxStale,alStale);return;
+  }
+
+  const da=densityAlt(d), w500=windAt(w[0],500), w1000=windAt(w[0],1000);
+  let dShift=w[1].dir-base; if(dShift>180)dShift-=360; if(dShift<-180)dShift+=360;
+  const brief=[
+    ["Wind",measFresh()
+      ? `Measured ${esc(S.best.id)} (${S.best.mi} mi, ${agoTxt(S.best.when.getTime())}): from ${w[0].dir}&deg; ${cardinal(w[0].dir)} at ${w[0].spd} mph, gusting ${w[0].gust}. Spread +${w[0].spread}.`
+      : `Model only: from ${w[0].dir}&deg; ${cardinal(w[0].dir)} at ${w[0].spd} mph, gusting ${w[0].gust}. Spread +${w[0].spread}.`],
+    ["Change",`In 30 min: ${w[1].dir}&deg; ${cardinal(w[1].dir)} at ${w[1].spd} gusting ${w[1].gust} (${dShift>=0?"+":""}${Math.round(dShift)}&deg;, ${w[1].spd-w[0].spd>=0?"+":""}${w[1].spd-w[0].spd} mph).`],
+    ["Air",`${Math.round(d.cur.temp)}&deg;F, dewpoint ${Math.round(d.cur.dew)}&deg;F, cloud cover ${Math.round(d.cur.cloud)}%, density altitude ${da!=null?da.toLocaleString()+" ft":"unavailable"}.`],
+    ["Pressure",`${(d.cur.pmsl*0.02953).toFixed(2)} inHg, ${d.trend<-0.005?"falling":d.trend>0.005?"rising":"steady"} ${Math.abs(d.trend).toFixed(2)} per hour.`],
+    ["Shear",(()=>{const sh=shearOf(w[0]);
+      return sh?`At 500 ft the wind is ${sh.at500} mph from ${sh.dir500}&deg;, ${sh.gain>=0?"+"+sh.gain:sh.gain} mph and ${sh.turn>=0?"+":""}${sh.turn}&deg; off the ground wind.${sh.gain>=LIMITS.shear?" Over your shear limit — expect a sinking final.":""}`:"Winds aloft unavailable.";})()],
+    ["Warnings",bad.length?bad.map(a=>esc(a.event)).join(", ")+" over you now.":alerts.length?alerts.map(a=>esc(a.event)).join(", "):"No NWS warnings over your position."],
+    ["Window",d.breach!=null?`About ${d.breach} minutes before a limit is crossed.`:"No limit crossing in the next 4 hours."]
+  ];
+  document.getElementById("brief").innerHTML=brief.map(([k,v])=>`<div><b>${k}</b><span>${v}</span></div>`).join("");
+
+  const t=document.getElementById("tiles");t.innerHTML="";
+  t.appendChild(el(`<div class="wtile">${compass(w[0].dir,"var(--txt)",104)}<div class="tile">
+    <div class="lbl">${measFresh()?"Measured now":"Model now"}</div><div class="big">${w[0].dir}&deg;</div>
+    <div class="sub">from the ${cardinal(w[0].dir)}${measFresh()?" · "+S.best.id:""}</div><div class="sub">${w[0].spd} mph, gusts ${w[0].gust}</div></div></div>`));
+  t.appendChild(el(`<div class="wtile">${compass(w[1].dir,"var(--info)",104)}<div class="tile">
+    <div class="lbl">Wind in 30 min</div><div class="big" style="color:var(--info)">${w[1].dir}&deg;</div>
+    <div class="sub">from the ${cardinal(w[1].dir)}</div><div class="sub">${w[1].spd} mph, gusts ${w[1].gust}</div>
+    <div class="delta up">${dShift>=0?"+":""}${Math.round(dShift)}&deg; &middot; ${w[1].spd-w[0].spd>=0?"+":""}${w[1].spd-w[0].spd} mph</div></div></div>`));
+  t.appendChild(el(`<div class="tile"><div class="lbl">Gust spread</div>
+    <div class="big">+${w[0].spread} <span style="color:var(--dim);font-size:18px">&rarr; +${w[1].spread}</span></div>
+    <div class="sub">mph above steady wind</div><div class="delta up">too rough past +${LIMITS.spread}</div></div>`));
+  const pct=d.breach!=null?Math.max(4,Math.min(100,d.breach/120*100)):100;
+  const tcol=d.breach==null?C.go:d.breach<30?C.nogo:d.breach<120?C.caution:C.go;
+  t.appendChild(el(`<div class="tile"><div class="lbl">Time left to fly</div>
+    <div class="big" style="color:${tcol}">${d.breach==null?"open":d.breach+" min"}</div>
+    <div class="sub">${d.breach==null?"no limit crossing ahead":"until a limit is crossed"}</div>
+    <div class="bar"><i style="width:${pct}%;background:${tcol}"></i></div></div>`));
+
+  const obEl=document.getElementById("obstime");
+  obEl.textContent=fmt(d.obs);
+  obEl.style.color=wxStale?"var(--caution)":"";
+  const surf=d.model.wind_speed_10m||"", aloft=d.model.wind_speed_180m||d.model.wind_speed_120m||"";
+  S.model=surf;
+  document.getElementById("wxsrc").textContent=`Open-Meteo ${surf==="HRRR"?"HRRR":"best-match"}${aloft&&aloft!==surf?" · aloft "+aloft:""} · 15 min steps`;
+  matrix(d,w,lvls,da,w500,w1000);strip(w,lvls);hazards();rules(d,w,base);field(d,w,w500,w1000,da);sources();calc();
+  airRender(d,level,word,why,bad,wxStale,alStale);
+}
+
+function matrix(d,w,lvls,da,w500,w1000){
+  const trendWord=d.trend<-0.005?"falling":d.trend>0.005?"rising":"steady";
+  const rows=[
+    {p:"Wind direction",plain:"Which way the wind is blowing from. Watch for the arrow rotating between columns.",type:"dir",vals:w.map(s=>s.dir),flag:"live",lvl:"go"},
+    {p:"Wind speed",plain:`Steady wind. Your limit is ${LIMITS.wind} mph.`,vals:w.map(s=>s.spd+" mph"),flag:w[3].spd-w[0].spd>=0?`+${w[3].spd-w[0].spd} mph in 2 hr`:`${w[3].spd-w[0].spd} mph in 2 hr`,lvl:w.some(s=>s.spd>LIMITS.wind)?"nogo":"watch"},
+    {p:"Gusts and gust spread",plain:`Peak gust, and how far it jumps above steady wind. Rough past +${LIMITS.spread}.`,vals:w.map(s=>`${s.gust} / +${s.spread}`),flag:"gust limit "+LIMITS.gust,lvl:w.some(s=>s.spread>LIMITS.spread)?"caution":"go"},
+    {p:"Wind shear, ground to 500 ft",
+      plain:`How much stronger and how far turned the wind is at 500 ft than at your feet. A big jump means a sinking, surging final approach. Your limit is +${LIMITS.shear} mph.`,
+      vals:w.map(x=>{const sh=shearOf(x); return sh?`+${sh.gain} mph / ${sh.turn>=0?"+":""}${sh.turn}&deg;`:"—";}),
+      flag:(()=>{const shs=w.map(shearOf); if(!shs.some(Boolean)) return "no data";
+        const g=Math.max(...shs.map(sh=>sh?sh.gain:0));
+        return g>=LIMITS.shear?"over limit":g>=LIMITS.shear*0.7?"building":"mild";})(),
+      lvl:(()=>{const shs=w.map(shearOf); if(!shs.some(Boolean)) return "watch";
+        const g=Math.max(...shs.map(sh=>sh?sh.gain:0));
+        return g>=LIMITS.shear?"caution":g>=LIMITS.shear*0.7?"watch":"go";})()},
+    {p:"Pressure",plain:"Falling pressure usually means weather moving in.",vals:[(d.cur.pmsl*0.02953).toFixed(2)+" inHg",trendWord,Math.abs(d.trend).toFixed(2)+"/hr","—"],flag:trendWord,lvl:d.trend<-0.04?"caution":"go"},
+    {p:"Time left to fly",plain:"Minutes before one of your limits gets crossed.",vals:[d.breach==null?"open":d.breach+" min","—","—","—"],flag:d.breach==null?"clear":"closing",lvl:d.breach==null?"go":d.breach<30?"nogo":"caution"},
+    {p:"Cloud base",plain:"Height of the cloud bottoms above the ground. Measured at the station when reported, otherwise estimated from the temperature and dewpoint spread.",
+      vals:w.map((s,i)=>{
+        if(i===0&&S.obs&&S.obs.layers&&S.obs.layers.length) return S.obs.layers.map(L=>`${esc(L.amt)} ${L.ft.toLocaleString()}`).join(", ");
+        const b=Math.round(((s.temp-s.dew)/4.4)*1000);
+        return (s.cloud<12?"clear · ":"")+(b>0?b.toLocaleString()+" ft":"at surface");}),
+      flag:(S.obs&&S.obs.ceil!=null)?"ceiling "+S.obs.ceil.toLocaleString()+" ft":"estimated",
+      lvl:(S.obs&&S.obs.ceil!=null&&S.obs.ceil<1500)?"caution":"go"},
+    {p:"Sky cover and visibility",plain:"How much of the sky is covered, and how far you can see.",vals:w.map(s=>`${Math.round(s.cloud)}% / ${s.vis!=null?(s.vis<3?s.vis.toFixed(1):Math.round(s.vis)):"—"} mi`),flag:"live",lvl:"go"},
+    {p:"Density altitude",plain:"How thin the air feels. Higher means longer launch runs and less climb.",vals:[da!=null?da.toLocaleString()+" ft":"—","—","—","—"],flag:da==null?"no data":da>3000?"high":"normal",lvl:da==null?"watch":da>4000?"caution":"go"}
+  ];
+  document.getElementById("matrix").innerHTML=rows.map(r=>{
+    const cells=r.vals.map((v,i)=>{
+      const inner=r.type==="dir"?`<span class="dirv">${miniDir(v,i===0?"var(--txt)":"var(--info)",26)}<span>${v}&deg; ${cardinal(v)}</span></span>`:v;
+      return `<div class="mv ${i===0?"now":""}"><div class="k">${KEYS[i]}</div><div class="v">${inner}</div></div>`;}).join("");
+    return `<div class="mrow" style="--st:${C[r.lvl]}"><div class="mhd"><b>${r.p}</b><span class="flag">${r.flag}</span></div>
+      <p class="plain">${r.plain}</p><div class="mvals">${cells}</div></div>`;}).join("");
+}
+function strip(w,lvls){
+  document.getElementById("strip").innerHTML=w.map((s,i)=>{
+    const label={go:"Good to fly",watch:"Keep watching",caution:"Marginal",nogo:"Do not fly"}[lvls[i]];
+    return `<div class="step" style="--st:${C[lvls[i]]}"><div class="t">${KEYS[i]} &middot; ${fmt(s.time)}</div>
+      <div class="w">${s.dir}&deg; ${s.spd} mph</div>
+      <div class="s">from the ${cardinal(s.dir)}<br>gusts ${s.gust}, spread +${s.spread}</div>
+      <div class="st">${label}</div></div>`;}).join("");
+}
+function hazards(){
+  const a=S.alerts;
+  let html="";
+  if(S.err.al) html=`<div class="hz" style="--st:${C.nogo}"><span class="dot"></span><div><div class="ttl"><b>Warning feed failed</b><span class="state">ERROR</span></div><p>${esc(S.err.al)}. Assume nothing — check the sky and a phone weather app.</p></div></div>`;
+  else if(!a) html=`<div class="hz" style="--st:${C.none}"><span class="dot"></span><div><div class="ttl"><b>Loading warnings…</b></div></div></div>`;
+  else if(isStale("al")) html=`<div class="hz" style="--st:${C.caution}"><span class="dot"></span><div><div class="ttl"><b>Warning feed is stale</b><span class="state">${Math.round(ageMin(S.t.al)||0)} MIN OLD</span></div><p>This hasn't refreshed recently, so it can't confirm there's no active warning right now. Check NWS or the sky directly.</p></div></div>`;
+  else if(!a.length) html=`<div class="hz" style="--st:${C.go}"><span class="dot"></span><div><div class="ttl"><b>No warnings over your position</b><span class="state">CLEAR</span></div><p>Nothing issued by the National Weather Service for this exact spot. Storms can still be nearby — this only checks the ground you are standing on.</p></div></div>`;
+  else html=a.map(x=>{
+    const lvl=/Tornado Warning|Severe Thunderstorm Warning/i.test(x.event)?"nogo":/Warning/i.test(x.event)?"caution":"watch";
+    const ends=x.expires?new Date(x.expires):null;
+    return `<div class="hz" style="--st:${C[lvl]}"><span class="dot"></span><div>
+      <div class="ttl"><b>${esc(x.event)}</b><span class="state">${ends?"until "+fmt(ends):"active"}</span></div>
+      <p>${esc((x.headline||x.areaDesc||"").slice(0,240))}</p></div></div>`;}).join("");
+  const md=S.md;
+  if(S.err.md) html+=`<div class="hz" style="--st:${C.nogo}"><span class="dot"></span><div><div class="ttl"><b>Mesoscale discussions</b><span class="state">ERROR</span></div><p>${esc(S.err.md)}</p></div></div>`;
+  else if(md){
+    const mine=md.filter(m=>m.mine);
+    if(mine.length) html+=mine.map(m=>`<div class="hz" style="--st:${C.watch}"><span class="dot"></span><div>
+      <div class="ttl"><b>Mesoscale discussion ${esc(m.num)}</b><span class="state">YOUR AREA</span></div>
+      <p>${esc(m.areas)}. ${esc(m.conc)}${m.prob?". Watch chance "+esc(m.prob):""}. Issued ${fmt(m.when)}. Forecasters are watching this area — a watch may follow.</p></div></div>`).join("");
+    else html+=`<div class="hz" style="--st:${C.go}"><span class="dot"></span><div><div class="ttl"><b>Mesoscale discussions</b><span class="state">NONE FOR YOUR STATE</span></div>
+      <p>${md.length} issued nationally in the last 4 hours, none covering your state.</p></div></div>`;
+  }
+  document.getElementById("hazards").innerHTML=html;
+}
+function rules(d,w,base){
+  if(!d){document.getElementById("rules").innerHTML="";return;}
+  let maxShift=0;w.forEach(s=>{let x=Math.abs(s.dir-base);if(x>180)x=360-x;maxShift=Math.max(maxShift,x);});
+  const mx=k=>Math.max(...w.map(s=>s[k]));
+  const shs=w.map(shearOf), shearKnown=shs.some(Boolean), shearMax=shearKnown?Math.max(...shs.map(sh=>sh?sh.gain:0)):null;
+  const alNever=!S.err.al&&S.t.al==null;
+  const alBroken=S.err.al||alNever||isStale("al");
+  const R=[
+    [`Steady wind over ${LIMITS.wind} mph`,`Highest in next 2 hr: ${mx("spd")} mph`,mx("spd")>LIMITS.wind?"crossed":"ok"],
+    [`Gust over ${LIMITS.gust} mph`,`Highest in next 2 hr: ${mx("gust")} mph`,mx("gust")>LIMITS.gust?"crossed":"ok"],
+    [`Gust spread over ${LIMITS.spread} mph`,`Widest in next 2 hr: +${mx("spread")} mph`,mx("spread")>LIMITS.spread?"crossed":"ok"],
+    [`Wind swings more than ${LIMITS.shift}&deg;`,`Largest swing: ${Math.round(maxShift)}&deg;`,maxShift>LIMITS.shift?"crossed":"ok"],
+    [`Shear to 500 ft over ${LIMITS.shear} mph`,
+      shearKnown?`Largest gain in next 2 hr: +${shearMax} mph`:"Wind-aloft data unavailable",
+      !shearKnown?"unknown":shearMax>LIMITS.shear?"crossed":"ok"],
+    ["Tornado or severe storm warning over you",
+      alBroken?(S.err.al?"Warning feed failed":alNever?"Warning feed still loading":"Warning feed stale"):((S.alerts||[]).length?"Alerts present":"None right now"),
+      alBroken?"unknown":((S.alerts||[]).some(a=>/Tornado Warning|Severe Thunderstorm Warning/i.test(a.event))?"crossed":"ok")]
+  ];
+  const RC={crossed:C.nogo,ok:C.go,unknown:C.watch}, RL={crossed:"CROSSED",ok:"OK",unknown:"UNKNOWN"};
+  document.getElementById("rules").innerHTML=R.map(([r,dd,status])=>`
+    <div class="rule" style="--st:${RC[status]}"><div class="txt"><b>${r}</b><span>${dd}</span></div>
+    <span class="pill">${RL[status]}</span></div>`).join("");
+}
+function field(d,w,w500,w1000,da){
+  const rows=[
+    ["Temperature / dewpoint",`${Math.round(d.cur.temp)} / ${Math.round(d.cur.dew)} &deg;F`],
+    ["Wind at ground level",`${w[0].dir}&deg; ${w[0].spd} mph gusting ${w[0].gust}`],
+    ["Wind at 500 ft AGL",w500?`${Math.round(w500.d)}&deg; ${Math.round(w500.s)} mph`:"—"],
+    ["Wind at 1,000 ft AGL",w1000?`${Math.round(w1000.d)}&deg; ${Math.round(w1000.s)} mph (estimated)`:"—"],
+    ["Shear, ground to 500 ft",(()=>{const sh=shearOf(w[0]);return sh?`${sh.gain>=0?"+":""}${sh.gain} mph, ${sh.turn>=0?"+":""}${sh.turn}&deg;`:"—";})()],
+    ["Density altitude",da!=null?da.toLocaleString()+" ft":"—"],
+    ["Field elevation",Math.round(d.elev*3.28084).toLocaleString()+" ft"],
+    ["Measured at "+(S.best?esc(S.best.id):"nearest station"),
+      S.err.obs&&!S.best?"feed error":!S.best?"…":
+      (S.best.spd==null?"no wind reported":`${S.best.dir!=null?S.best.dir+"&deg; ":""}${S.best.spd} mph${S.best.gust!=null?" gusting "+S.best.gust:""}`)],
+    ["Measured cloud layers",S.obs?(S.obs.layers&&S.obs.layers.length?S.obs.layers.map(L=>`${esc(L.amt)} ${L.ft.toLocaleString()} ft`).join(", "):"clear"):"—"],
+    ["Ceiling",S.obs?(S.obs.ceil!=null?S.obs.ceil.toLocaleString()+" ft":"none reported"):"—"],
+    ["Station distance / reading time",S.obs?`${S.obs.mi} mi away${S.obs.when?" · "+fmt(S.obs.when)+" ("+agoTxt(S.obs.when.getTime())+")":""}${isStale("obs")?` <span style="color:var(--caution)">STALE</span>`:""}`:"—"]
+  ];
+  document.getElementById("field").innerHTML=rows.map(([k,v])=>
+    `<div class="rule"><div class="txt"><b>${k}</b></div><span class="num" style="font-size:14px">${v}</span></div>`).join("");
+}
+function sources(){
+  const rows=[
+    ["Open-Meteo "+(S.model==="HRRR"?"HRRR":S.model?"best-match":"(model)"),(S.model==="HRRR"?"NOAA HRRR 3 km, requested explicitly. ":S.model?"HRRR was unavailable — Open-Meteo's best-match blend is filling in. ":"")+"Used for the next 30/60/120 minutes, not as the windsock. Checked every 3 minutes.",S.err.wx?"ERROR":S.steps?"LIVE":"…",S.err.wx?"nogo":S.steps?"go":"none"],
+    ["NWS active alerts","Tornado and severe storm warnings for your exact point. Checked every 45 seconds.",S.err.al?"ERROR":S.alerts?"LIVE":"…",S.err.al?"nogo":S.alerts?"go":"none"],
+    ["NWS nearby warnings",`Warning polygons within ${NEAR_RADIUS} miles across ${NEARBY_STATES.join("/")}, with distance, bearing and storm motion. Checked every 45 seconds.`,S.err.near?"ERROR":S.near?"LIVE":"…",S.err.near?"nogo":S.near?"go":"none"],
+    ["Measured METAR / ASOS",S.best?`Launch word uses ${esc(S.best.id)}, ${S.best.mi} mi away, reading ${S.best.when?agoTxt(S.best.when.getTime()):"time unknown"}. METAR + NWS stations, picked by distance and freshness, every 35 seconds.`:"Nearest official stations and Aviation Weather METARs.",S.err.obs?"ERROR":S.best?(isStale("obs")?"STALE":"LIVE"):"…",S.err.obs?"nogo":S.best?(isStale("obs")?"caution":"go"):"none"],
+    ["SPC mesoscale discussions","Forecaster heads-up before a watch is issued, filtered to your state.",S.err.md?"ERROR":S.md?"LIVE":"…",S.err.md?"nogo":S.md?"go":"none"]
+  ];
+  document.getElementById("sources").innerHTML=rows.map(([n,d,t,lvl])=>
+    `<div class="srcitem" style="--st:${C[lvl]}"><div><b>${n}</b><span>${d}</span></div><span class="tag">${t}</span></div>`).join("");
+}
+function solve(dist,course,air,w){
+  const th=(w.dir-course)*Math.PI/180, head=w.spd*Math.cos(th), cross=Math.abs(w.spd*Math.sin(th));
+  if(cross>=air) return {ok:false,msg:"Wind too strong across your course"};
+  const gs=Math.sqrt(air*air-cross*cross)-head;
+  if(gs<=0.5) return {ok:false,msg:"You cannot make headway into this"};
+  return {ok:true,gs,min:Math.ceil(dist/gs*60),head,cross};
+}
+function calc(){
+  const steps=S.steps&&S.steps.steps;
+  if(!steps&&!measFresh()){document.getElementById("results").innerHTML=`<div class="res" style="--st:${C.none}"><div class="k">WAITING</div><div class="t" style="font-size:18px">—</div><div class="d">Needs live wind</div></div>`;return;}
+  const dist=+document.getElementById("i-dist").value||0, course=+document.getElementById("i-course").value||0;
+  const air=+document.getElementById("i-air").value||1, pwr=+document.getElementById("i-pwr").value||0;
+  const rows=steps?steps.slice():[{dir:S.best.dir,spd:S.best.spd}];
+  if(measFresh()) rows[0]={...rows[0],dir:S.best.dir,spd:S.best.spd};
+  document.getElementById("results").innerHTML=rows.map((w,i)=>{
+    const r=solve(dist,course,air,w);
+    if(!r.ok) return `<div class="res" style="--st:${C.nogo}"><div class="k">${KEYS[i]}</div><div class="t" style="font-size:20px">NO</div><div class="d">${r.msg}</div></div>`;
+    const lvl=r.min>pwr?"nogo":r.min>pwr*0.7?"caution":i===0?"go":"watch";
+    return `<div class="res" style="--st:${C[lvl]}"><div class="k">${KEYS[i]}</div><div class="t">${r.min} min</div>
+      <div class="d">${Math.round(r.gs)} mph over ground<br>${r.head>0?Math.round(r.head)+" mph headwind":Math.round(-r.head)+" mph tailwind"}, ${Math.round(r.cross)} crosswind<br>${r.min>pwr?"Longer than your "+pwr+" min of power":(pwr-r.min)+" min of power to spare"}</div></div>`;
+  }).join("");
+}
+
+/* ================= AIR MODE ================= */
+// One screen, no scrolling, the six things that matter in flight. Uses the same level/word/why the full panel computed — never a separate opinion.
+function airRender(d,level,word,why,bad,wxStale,alStale){
+  const a=document.getElementById("air"); if(!a.classList.contains("on")) return;
+  document.getElementById("a-site").textContent=S.site.n;
+  document.getElementById("a-clock").textContent=fmt(new Date());
+  const dec=document.getElementById("a-dec");
+  dec.style.setProperty("--st",C[level]);
+  dec.innerHTML=`<div class="word">${esc(word)}</div><div class="why">${esc(why)}</div>`;
+  const bar=document.getElementById("a-bar");
+  bar.className="abar";
+  if(bad&&bad.length){ bar.textContent="LAND NOW — "+bad.map(x=>x.event.toUpperCase()).join(" + "); bar.classList.add("on"); }
+  else if(OFFLINE){ bar.textContent="PHONE OFFLINE — this is a snapshot. Check the sky."; bar.classList.add("on","off"); }
+  else if(wxStale||alStale){ bar.textContent="STALE DATA — verify with the sky and windsock."; bar.classList.add("on","stale"); }
+  const g=document.getElementById("a-grid");
+  if(!d){ g.innerHTML=""; return; }
+  const w=d.steps, n=w[0], m=w[1];
+  let dShift=m.dir-n.dir; if(dShift>180)dShift-=360; if(dShift<-180)dShift+=360;
+  const tcol=d.breach==null?C.go:d.breach<30?C.nogo:d.breach<120?C.caution:C.go;
+  const spreadCol=n.spread>LIMITS.spread?C.nogo:n.spread>LIMITS.spread-2?C.caution:C.go;
+  const gustCol=n.gust>LIMITS.gust?C.nogo:n.gust>LIMITS.gust*0.85?C.caution:C.go;
+  const windCol=n.spd>LIMITS.wind?C.nogo:n.spd>LIMITS.wind*0.85?C.caution:n.spd>LIMITS.wind*0.7?C.watch:C.go;
+  // time home: NOW row of the return calculator, from the same inputs
+  const dist=+document.getElementById("i-dist").value||0, course=+document.getElementById("i-course").value||0;
+  const air=+document.getElementById("i-air").value||1, pwr=+document.getElementById("i-pwr").value||0;
+  const r=solve(dist,course,air,n);
+  const homeV=r.ok?`${r.min} min`:"NO", homeS=r.ok?`${Math.round(r.gs)} mph over ground · ${r.min>pwr?"over your "+pwr+" min":(pwr-r.min)+" min to spare"}`:r.msg;
+  const homeCol=!r.ok||r.min>pwr?C.nogo:r.min>pwr*0.7?C.caution:C.go;
+  const near=(S.near||[]).find(x=>/Tornado|Thunderstorm/i.test(x.event));
+  const stormV=near?(near.over?"OVER YOU":near.mi+" mi"):"none", stormS=near?`${near.event}${near.brg!=null&&!near.over?" to the "+cardinal(near.brg):""}${near.eta!=null?" · ETA "+near.eta+" min":""}`:`no storm warnings within ${NEAR_RADIUS} mi`;
+  const stormCol=near?(near.over||near.mi<=15?C.nogo:near.mi<=25||(near.eta!=null&&near.eta<=45)?C.caution:C.watch):C.go;
+  g.innerHTML=`
+    <div class="acell wind" style="--st:${windCol}">${compass(n.dir,"var(--txt)",96)}<div class="tile">
+      <div class="k">Wind now</div><div class="v">${n.dir}&deg; ${cardinal(n.dir)}</div>
+      <div class="s">${n.spd} mph, gusts ${n.gust} · spread +${n.spread}</div>
+      <div class="s">in 30 min: ${m.dir}&deg; ${m.spd} g${m.gust} (${dShift>=0?"+":""}${Math.round(dShift)}&deg;)</div></div></div>
+    <div class="acell" style="--st:${gustCol}"><div class="k">Gust</div><div class="v">${n.gust}</div><div class="s">mph · limit ${LIMITS.gust}</div></div>
+    <div class="acell" style="--st:${spreadCol}"><div class="k">Spread</div><div class="v">+${n.spread}</div><div class="s">mph · limit +${LIMITS.spread}</div></div>
+    <div class="acell" style="--st:${tcol}"><div class="k">Time left</div><div class="v">${d.breach==null?"open":d.breach+" min"}</div><div class="s">${d.breach==null?"no limit crossing ahead":"until a limit is crossed"}</div></div>
+    <div class="acell" style="--st:${homeCol}"><div class="k">Time home</div><div class="v">${homeV}</div><div class="s">${esc(homeS)}</div></div>
+    <div class="acell" style="--st:${stormCol};grid-column:1/-1"><div class="k">Nearest storm</div><div class="v" style="font-size:clamp(24px,7vw,40px)">${esc(stormV)}</div><div class="s">${esc(stormS)}</div></div>`;
+}
+function setAir(on){
+  document.getElementById("air").classList.toggle("on",on);
+  document.getElementById("airbtn").textContent=on?"Exit air":"Air mode";
+  try{ localStorage.setItem("ppg_air_v1",on?"1":"0"); }catch(e){}
+  if(on) keepAwake();
+  render();
+}
+
+/* ================= SCREEN WAKE LOCK ================= */
+// Keeps the phone from sleeping while the panel is open. Re-requested every time the tab comes back to the front.
+let WAKE=null;
+async function keepAwake(){
+  if(!("wakeLock" in navigator)||document.visibilityState!=="visible") return;
+  try{ if(WAKE&&!WAKE.released) return; WAKE=await navigator.wakeLock.request("screen");
+       WAKE.addEventListener("release",()=>{ WAKE=null; }); }
+  catch(e){ WAKE=null; }
+}
+
+/* ================= LOAD / REFRESH ================= */
+const REFRESH={wx:180000, al:45000, near:45000, obs:35000, md:300000, retry:20000};
+const TIMER={};
+function schedule(key,fn,ms){ clearTimeout(TIMER[key]); if(key==="wx") S.next.wx=Date.now()+ms; TIMER[key]=setTimeout(fn,ms); }
+function refreshCountdown(){
+  const b=document.getElementById("refresh"); if(!b||b.dataset.busy) return;
+  const left=S.next.wx?Math.max(0,Math.round((S.next.wx-Date.now())/1000)):null;
+  b.textContent=left==null?"Refresh":`Refresh · ${left}s`;
+}
+let wxBusy=false;
+async function loadWeather(){
+  if(wxBusy) return; wxBusy=true; const g=S.gen;
+  try{ const raw=await getWeather(S.site.lat,S.site.lon); if(g!==S.gen){ wxBusy=false; return; }
+       S.raw=raw; S.err.wx=null; S.t.wx=Date.now(); schedule("wx",loadWeather,REFRESH.wx); }
+  catch(e){ if(g!==S.gen){ wxBusy=false; return; } S.err.wx=e.message; S.raw=null; S.steps=null; schedule("wx",loadWeather,REFRESH.retry); }
+  wxBusy=false; render();
+}
+async function loadAlerts(){
+  const g=S.gen;
+  try{ const v=await getAlerts(S.site.lat,S.site.lon); if(g!==S.gen) return; S.alerts=v; S.err.al=null; S.t.al=Date.now(); schedule("al",loadAlerts,REFRESH.al); }
+  catch(e){ if(g!==S.gen) return; S.err.al=e.message; S.alerts=null; schedule("al",loadAlerts,REFRESH.retry); }
+  render();
+}
+async function loadObs(){
+  const g=S.gen;
+  try{
+    const [nws, metar]=await Promise.allSettled([getObs(S.site.lat,S.site.lon), getMetars(S.site.lat,S.site.lon)]);
+    if(g!==S.gen) return;
+    const nwsList=nws.status==="fulfilled"?nws.value:[];
+    const metars=metar.status==="fulfilled"?metar.value:[];
+    if(!nwsList.length&&!metars.length) throw new Error(nws.status==="rejected"?nws.reason.message:(metar.reason&&metar.reason.message)||"no measured wind");
+    S.stations=mergeStations(nwsList, metars);
+    S.best=pickBest(S.stations);
+    S.obs=S.best||S.stations[0]||null;
+    S.err.obs=S.best?null:"stations found but none have a fresh wind reading";
+    S.t.obs=Date.now();
+    schedule("obs",loadObs,REFRESH.obs);
+  }
+  catch(e){ if(g!==S.gen) return; S.err.obs=e.message; schedule("obs",loadObs,REFRESH.retry); }
+  render();
+}
+async function loadMD(){
+  const g=S.gen;
+  try{
+    let state=S.pt&&S.pt.state;
+    if(!state){ try{ state=(await getPoints(S.site.lat,S.site.lon)).state; }catch(e){ state=null; } }
+    const v=await getMD(state); if(g!==S.gen) return;
+    S.md=v; S.err.md=null; S.t.md=Date.now(); schedule("md",loadMD,REFRESH.md);
+  }
+  catch(e){ if(g!==S.gen) return; S.err.md=e.message; S.md=null; schedule("md",loadMD,REFRESH.retry); }
+  render();
+}
+async function loadNearby(){
+  const g=S.gen;
+  try{ const v=await getNearby(S.site.lat,S.site.lon); if(g!==S.gen) return; S.near=v; S.err.near=null; S.t.near=Date.now(); schedule("near",loadNearby,REFRESH.near); }
+  catch(e){ if(g!==S.gen) return; S.err.near=e.message; S.near=null; schedule("near",loadNearby,REFRESH.retry); }
+  render();
+}
+// Refresh everything at once. Buttons show "Refreshing…" until every feed has answered (or failed).
+async function loadAll(){
+  const bs=[document.getElementById("refresh"),document.getElementById("a-refresh")].filter(Boolean);
+  bs.forEach(b=>{ b.dataset.busy="1"; b.textContent="Refreshing…"; });
+  try{ await Promise.allSettled([loadWeather(),loadAlerts(),loadNearby(),loadObs(),loadMD()]); }
+  finally{ bs.forEach(b=>{ delete b.dataset.busy; }); document.getElementById("a-refresh").textContent="Refresh"; refreshCountdown(); }
+}
+function allSites(){ return SITES.concat(SAVED); }
+function renderSites(){
+  document.getElementById("sites").innerHTML=allSites().map((s,i)=>{
+    const isCustom=i>=SITES.length;
+    const active=S.site.n===s.n&&S.site.lat===s.lat&&S.site.lon===s.lon;
+    return `<span style="display:inline-flex;gap:2px">
+      <button class="tgl${active?" hl":""}" data-i="${i}" type="button">${esc(s.n)}</button>
+      ${isCustom?`<button class="tgl" data-rm="${i-SITES.length}" type="button" title="Remove ${esc(s.n)}">&times;</button>`:""}
+    </span>`;
+  }).join("");
+}
+function setSite(n,lat,lon){
+  S.site={n,lat,lon};
+  try{ localStorage.setItem(SELKEY,JSON.stringify(S.site)); }catch(e){}
+  document.getElementById("i-lat").value=lat.toFixed(4);
+  document.getElementById("i-lon").value=lon.toFixed(4);
+  renderSites();
+  S.gen++; wxBusy=false; S.err={}; S.t={wx:null,al:null,near:null,obs:null,md:null};
+  S.raw=null;S.steps=null;S.alerts=null;S.near=null;S.obs=null;S.md=null;S.pt=null;S.stations=[];S.best=null;render();loadAll();
+}
+document.getElementById("i-lat").value=S.site.lat.toFixed(4);
+document.getElementById("i-lon").value=S.site.lon.toFixed(4);
+renderSites();
+document.getElementById("sites").addEventListener("click",e=>{
+  const rm=e.target.closest("button[data-rm]");
+  if(rm){
+    const i=+rm.dataset.rm;
+    if(confirm(`Remove "${SAVED[i].n}" from your saved sites?`)){ SAVED.splice(i,1); persistSaved(); renderSites(); }
+    return;
+  }
+  const b=e.target.closest("button[data-i]"); if(!b) return;
+  const s=allSites()[+b.dataset.i]; setSite(s.n,s.lat,s.lon);
+});
+document.getElementById("apply").addEventListener("click",()=>
+  setSite("Custom point",+document.getElementById("i-lat").value,+document.getElementById("i-lon").value));
+document.getElementById("savesite").addEventListener("click",()=>{
+  const lat=+document.getElementById("i-lat").value, lon=+document.getElementById("i-lon").value;
+  if(!isFinite(lat)||!isFinite(lon)){alert("Enter a valid latitude and longitude first.");return;}
+  const name=(prompt('Name this spot (e.g. "Home field", "Ridge site"):','')||"").trim();
+  if(!name) return;
+  SAVED.push({n:name,lat,lon});
+  persistSaved();
+  setSite(name,lat,lon);
+});
+document.getElementById("gps").addEventListener("click",()=>{
+  const b=document.getElementById("gps");b.textContent="Locating…";
+  if(!navigator.geolocation){b.textContent="No GPS";return;}
+  navigator.geolocation.getCurrentPosition(
+    p=>{b.textContent="Use my GPS";setSite("My position",p.coords.latitude,p.coords.longitude);},
+    err=>{b.textContent="GPS blocked";
+      alert("Location failed: "+err.message+"\n\nPhone browsers only allow GPS on pages served over https. Opening this file from your downloads folder counts as insecure, so the button will always fail there. Host the file (GitHub Pages, Netlify Drop or Cloudflare Pages are free) and it will work. Meanwhile, type the coordinates in and press Use these.");},
+    {enableHighAccuracy:true,timeout:10000,maximumAge:0});
+});
+document.getElementById("refresh").addEventListener("click",loadAll);
+document.getElementById("a-refresh").addEventListener("click",loadAll);
+document.getElementById("airbtn").addEventListener("click",()=>setAir(!document.getElementById("air").classList.contains("on")));
+document.getElementById("a-exit").addEventListener("click",()=>setAir(false));
+try{ if(localStorage.getItem("ppg_air_v1")==="1") setAir(true); }catch(e){}
+const fsBtn=document.getElementById("full");
+function fsEl(){return document.fullscreenElement||document.webkitFullscreenElement;}
+fsBtn.addEventListener("click",async()=>{
+  try{
+    if(fsEl()){ (document.exitFullscreen||document.webkitExitFullscreen).call(document); }
+    else{ const r=document.documentElement;
+      await (r.requestFullscreen||r.webkitRequestFullscreen).call(r,{navigationUI:"hide"}); }
+  }catch(e){ fsBtn.textContent="Not supported"; setTimeout(()=>fsBtn.textContent="Full screen",2500); }
+});
+["fullscreenchange","webkitfullscreenchange"].forEach(ev=>
+  document.addEventListener(ev,()=>{fsBtn.textContent=fsEl()?"Exit full screen":"Full screen";}));
+document.getElementById("theme").addEventListener("click",e=>{
+  const dark=document.documentElement.dataset.theme==="dark";
+  document.documentElement.dataset.theme=dark?"light":"dark";e.currentTarget.textContent=dark?"Dark":"Light";});
+["i-dist","i-course","i-air","i-pwr"].forEach(id=>document.getElementById(id).addEventListener("input",calc));
+[["l-wind","wind"],["l-gust","gust"],["l-spread","spread"],["l-shift","shift"],["l-shear","shear"]].forEach(([id,k])=>{
+  document.getElementById(id).value=LIMITS[k];
+  document.getElementById(id).addEventListener("input",e=>{const v=+e.target.value; if(v>0){LIMITS[k]=v;saveLimits();render();}});
+});
+document.getElementById("l-reset").addEventListener("click",()=>{
+  Object.assign(LIMITS,{wind:15,gust:20,spread:9,shift:30,shear:12}); saveLimits();
+  [["l-wind","wind"],["l-gust","gust"],["l-spread","spread"],["l-shift","shift"],["l-shear","shear"]].forEach(([id,k])=>document.getElementById(id).value=LIMITS[k]);
+  render();});
+
+const BOOK=[
+ ["How to read this panel",[
+  ["Launch decision","Green fly, yellow watch, orange marginal, red no-go. NOW is the freshest nearby METAR/ASOS, not the forecast model. The model still colors +30/+60/+120. Your limits (default 15 / 20 / +9 / 30°) still drive every color."],
+  ["Measured stations","The chips under the status strip are real airport readings. The one marked USED is the closest+freshest with wind. KBJJ, KCAK and KAKR are always requested near Clinton, plus any other METAR inside about 45 miles."],
+  ["MODEL ≠ METER banner","If the airport meter and HRRR disagree by 4 mph or 30°, the panel refuses a clean FLY. Look at the windsock."],
+  ["Last reading","The model time of the current-conditions block in the wind feed, not the download time. Feed download ages are in the status strip under the location bar. If it stops advancing, the feed is stale."],
+  ["Full screen","Hides the browser bars so the whole screen is panel. Tap it again, or swipe down and press back, to come out. If you host the file and add it to your home screen, it opens full screen every time without the button."],
+  ["The two compasses","The dot sits on the side the wind blows FROM, the arrow shows which way it pushes you. Left is now, right is 30 minutes out."],
+  ["Time left to fly","Scans the next four hours in 15-minute steps and reports the first moment any limit is crossed."],
+  ["Time to get back to launch","Wind triangle using live wind at each step. Red means the trip home takes longer than the battery minutes you entered."],
+  ["OFFLINE banner and the Phone signal light","The dot next to Phone signal in the header turns red and the header shows OFFLINE the instant your phone loses signal — no waiting on a failed request. If it stays off for long, a grey banner takes over the top of the screen. Nothing can update while it's showing, so treat everything below as a snapshot from before you lost signal. It clears itself the moment signal returns, and the panel automatically re-checks every feed right away."],
+  ["STALE banner at the very top","If the wind feed or the warning feed hasn't updated recently, or failed outright, the panel refuses to show FLY no matter how calm the numbers look. Instead it shows STALE and this orange banner explains why in plain words. This can happen if your phone loses signal, the browser tab gets put to sleep in the background, or a data source is down. When you see it: look at the sky, check a windsock, and don't trust the colours below until it clears."],
+  ["Air mode","One screen, no scrolling, built to read at a glance in flight: the launch decision word, the wind compass with speed and gusts, gust, spread, time left before a limit is crossed, time home from the return calculator, and the nearest storm warning. Same numbers and same colours as the full panel — it is a view, not a second opinion. Big Refresh and Full panel buttons at the bottom. The panel remembers if you were in air mode when you reopen it."],
+  ["Screen stays on","While the panel is open the phone is asked not to sleep (a screen wake lock). It is re-asked every time the panel comes back to the front. Some browsers ignore it; if your screen dims, disable auto-lock in phone settings for the flight."],
+  ["Refresh countdown","The Refresh button counts down to the next automatic wind fetch (every 2 minutes). Pressing it refreshes every feed at once. A feed that fails retries after 20 seconds instead of waiting for its next turn."],
+  ["Save this spot","Type coordinates, or press Use my GPS, then press Save this spot to add a named button for a second or third flying field. It stays on this device, along with whichever site you had selected last, so reopening the panel returns you to where you left off. Press the small &times; next to a saved site's button to remove it."]
+ ]],
+ ["Your limits",[
+  ["Where to change them","The Your limits panel, just under the return calculator. Four boxes: steady wind, gust, gust spread, and how far the wind may swing. Type your own numbers and the whole panel recolours instantly."],
+  ["What they control","The launch decision word, the time-left-to-fly countdown, the warning logic list, and the colour of every step in the trend strip."],
+  ["They are saved","Your numbers stay on this device between reloads. Reset to defaults puts them back to 15 / 20 / 9 / 30. If you clear the browser's site data they go back to defaults too."]
+ ]],
+ ["Where the numbers come from",[
+  ["Open-Meteo HRRR","HRRR is the US rapid-refresh forecast model at 3 km resolution. It reruns every hour and this panel reads it in 15-minute steps. The panel asks Open-Meteo for HRRR by name; if HRRR is down or a level is missing, Open-Meteo's best-match blend fills that gap and the Current vs projected header says so. The NOW column is re-picked every few seconds so it always sits on the current 15-minute step. It is a model, not a measurement — it does not know about your treeline or that one rotor off the barn."],
+  ["NWS active alerts","Official warnings, checked against your exact coordinates every 60 seconds. This only reports warnings covering the ground you are standing on. The nearest-storm tile uses a separate scan of warning polygons out to 90 miles."],
+  ["Winds aloft","500 ft is interpolated between model heights. 1,000 ft is extrapolated above the top model level, which is why it says estimated. Treat it as a hint about shear, not a number to plan on."],
+  ["Density altitude","Computed from pressure, temperature and field elevation. Higher means longer launch runs and weaker climb."],
+  ["Airport observation","A real measured wind from the nearest official station, not a model. Units are read from the feed (NWS reports wind in km/h) and converted, never assumed. The age shown is the age of the station's own reading, not of the last download — a station that stopped reporting shows STALE after 75 minutes. It is the ground truth check on the forecast — if the two disagree badly, trust neither and look at the windsock."],
+  ["Mesoscale discussion","A Storm Prediction Center note on what forecasters are watching, often issued before a watch. The panel pulls the national list and filters to your state."],
+  ["Cloud base","The bottoms of the clouds above the field. When the nearest station reports layers, that measured number is used. Otherwise it is estimated from how far apart the temperature and dewpoint are, which is the standard rule of thumb for cumulus bases and can be off on a humid or fast-changing day."],
+  ["Ceiling","The lowest broken or overcast layer, meaning the lowest solid-looking deck. Scattered layers are not a ceiling."],
+  ["Not wired","That source is not connected. It shows no data rather than guessing."]
+ ]],
+ ["Wind shear",[
+  ["What it is","The difference between the wind at your feet and the wind a few hundred feet up. The panel compares your ground wind with the 500 ft wind from the same model."],
+  ["Why it matters on landing","Descending through a shear layer, you lose the stronger wind quickly. Ground speed jumps, the wing surges or sinks, and a smooth approach turns into a fast one. A gain of 10 to 15 mph over 500 ft is enough to notice on final."],
+  ["The turn number","The second figure is how far the wind direction changes over that height. A large turn means your into-wind approach at altitude is not into-wind at the ground."],
+  ["Limit","Set your own in the Your limits panel. Default is 12 mph. Crossing it pushes the launch decision to marginal even when everything else is calm."],
+  ["It is still a model","This is HRRR output, not a measurement. Terrain, treelines and buildings create their own shear the model cannot see."],
+  ["UNKNOWN pill","If the winds-aloft data is missing for every step, the shear rule shows UNKNOWN instead of a false OK. The launch decision also treats that as at least a watch, never a clean green."]
+ ]],
+ ["Wind words",[
+  ["Steady wind","The average. What you feel most of the time."],
+  ["Gust","The highest brief spike."],
+  ["Gust spread","Gust minus steady. Over about 9 mph is rough, surging air."],
+  ["Veering","Wind direction rotating clockwise, for example south to southwest to west. Counterclockwise is backing."],
+  ["Headwind and crosswind","Headwind subtracts from your ground speed. Crosswind makes you crab, which also costs ground speed. Both are in the return calculator."]
+ ]],
+ ["Weather products",[
+  ["METAR","The hourly surface observation from an airport. A real measurement, unlike the model."],
+  ["Mesoscale discussion","A note from the Storm Prediction Center on what forecasters are watching, often hours before a watch is issued."],
+  ["Watch versus warning","A watch means conditions favor severe weather over a wide area. A warning means it is happening now in a specific place."]
+ ]]
+];
+document.getElementById("bookbody").innerHTML=BOOK.map(([h,items])=>
+  `<section><h3>${h}</h3><dl>${items.map(([t,d])=>`<dt>${t}</dt><dd>${d}</dd>`).join("")}</dl></section>`).join("");
+document.getElementById("manual").addEventListener("click",()=>document.getElementById("ovl").classList.add("on"));
+document.getElementById("close").addEventListener("click",()=>document.getElementById("ovl").classList.remove("on"));
+document.getElementById("ovl").addEventListener("click",e=>{if(e.target.id==="ovl")e.currentTarget.classList.remove("on");});
+document.addEventListener("keydown",e=>{if(e.key==="Escape")document.getElementById("ovl").classList.remove("on");});
+
+if(!window.isSecureContext){const g=document.getElementById("gps");g.textContent="GPS needs https";g.style.borderColor="var(--caution)";g.style.color="var(--caution)";}
+function clock(){document.getElementById("clock").textContent=fmt(new Date());}
+clock();setInterval(clock,10000);setInterval(render,5000);setInterval(refreshCountdown,1000);
+document.addEventListener("visibilitychange",()=>{
+  if(document.visibilityState==="visible"){ loadAll(); keepAwake(); }
+});
+render();loadAll();keepAwake();
+</script>
+</body>
+</html>
